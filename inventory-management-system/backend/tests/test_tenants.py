@@ -7,7 +7,10 @@ from tests.conftest import create_user, create_tenant
 
 async def get_admin_token(client: AsyncClient, session: AsyncSession) -> str:
     await create_user(session, "admin_t@test.com", role="admin")
-    resp = await client.post("/api/v1/auth/register", json={"email": "admin_t@test.com", "password": "test123!"})
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "admin_t@test.com", "password": "test123!", "name": "Admin T"},
+    )
     # Override: create directly and login
     resp = await client.post("/api/v1/auth/login", json={"email": "admin_t@test.com", "password": "test123!"})
     return resp.json().get("access_token", "")

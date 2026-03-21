@@ -1,4 +1,4 @@
-"""drop deleted_at columns (hard delete only)
+"""drop deleted_at columns
 
 Revision ID: 0002
 Revises: 0001

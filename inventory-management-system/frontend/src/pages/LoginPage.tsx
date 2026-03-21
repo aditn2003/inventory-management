@@ -41,14 +41,14 @@ export function LoginPage() {
 
       // Temporarily set the token in the store so the /me request uses it
       dispatch(setCredentials({
-        user: { id: '', email: '', role: 'user', created_at: '' },
+        user: { id: '', name: '', role: 'user', created_at: '' },
         accessToken: tokenData.access_token,
       }));
 
       const user = await authApi.me();
       dispatch(setCredentials({ user, accessToken: tokenData.access_token }));
       navigate('/tenants');
-      toast.success(`Welcome, ${user.email}!`);
+      toast.success(`Welcome, ${user.name || 'back'}!`);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {

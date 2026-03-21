@@ -1,13 +1,12 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserListItem(BaseModel):
     id: UUID
-    email: str
+    name: str
     role: str
     assigned_tenant_count: int
     created_at: datetime
@@ -25,7 +24,7 @@ class TenantBrief(BaseModel):
 
 class UserDetail(BaseModel):
     id: UUID
-    email: str
+    name: str
     role: str
     assigned_tenants: list[TenantBrief]
     created_at: datetime
@@ -37,8 +36,18 @@ class UserRoleUpdate(BaseModel):
     role: str
 
 
-class TenantAssignmentInput(BaseModel):
-    tenant_id: UUID
+class UserInviteCreate(BaseModel):
+    email: EmailStr
+
+
+class UserInviteResponse(BaseModel):
+    message: str
+
+
+class UserTenantAccessSet(BaseModel):
+    """Replace this user's tenant access. Empty list = can access every tenant (no restriction rows)."""
+
+    tenant_ids: list[UUID]
 
 
 class UserListResponse(BaseModel):

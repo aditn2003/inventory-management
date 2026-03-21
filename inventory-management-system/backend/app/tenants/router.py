@@ -1,10 +1,10 @@
-from typing import Annotated, Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, get_redis, require_admin
+from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.auth.repository import UserRepository
 from app.database import get_db
@@ -13,16 +13,33 @@ from app.tenants.service import TenantService
 
 router = APIRouter()
 
+TenantSortBy = Literal["display_id", "name", "status", "created_at"]
+TenantSortDir = Literal["asc", "desc"]
+
 
 @router.get("", response_model=TenantListResponse)
 async def list_tenants(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     q: Optional[str] = Query(None),
+    sort_by: Optional[TenantSortBy] = Query(
+        None,
+        description="When set with sort_dir, sort by this column. Omit both for default order.",
+    ),
+    sort_dir: Optional[TenantSortDir] = Query(
+        None,
+        description="asc or desc; must be used together with sort_by.",
+    ),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TenantListResponse:
     svc = TenantService(session)
+
+    if (sort_by is None) != (sort_dir is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="sort_by and sort_dir must both be provided or both omitted.",
+        )
 
     if current_user.role == "admin":
         accessible_ids = None
@@ -31,7 +48,7 @@ async def list_tenants(
         assigned = await repo.get_assigned_tenant_ids(current_user.id)
         accessible_ids = assigned if assigned else None  # None = all-access
 
-    result = await svc.list_tenants(accessible_ids, page, page_size, q)
+    result = await svc.list_tenants(accessible_ids, page, page_size, q, sort_by, sort_dir)
     return result
 
 

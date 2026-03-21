@@ -75,11 +75,13 @@ async def seed(session: AsyncSession) -> None:
     # ── Users ────────────────────────────────────────────────────────────────
     admin = User(
         email=ADMIN_EMAIL,
+        name="System Administrator",
         password_hash=pwd_context.hash(ADMIN_PASSWORD),
         role="admin",
     )
     regular_user = User(
         email=USER_EMAIL,
+        name="Demo User",
         password_hash=pwd_context.hash(USER_PASSWORD),
         role="user",
     )

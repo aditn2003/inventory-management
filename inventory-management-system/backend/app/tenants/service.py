@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.tenants.models import Tenant
 from app.tenants.repository import TenantRepository
+
+TenantSortBy = Literal["display_id", "name", "status", "created_at"]
+TenantSortDir = Literal["asc", "desc"]
 
 
 class TenantService:
@@ -19,8 +22,12 @@ class TenantService:
         page: int,
         page_size: int,
         q: Optional[str],
+        sort_by: Optional[TenantSortBy] = None,
+        sort_dir: Optional[TenantSortDir] = None,
     ) -> dict:
-        tenants, total = await self.repo.list(accessible_tenant_ids, page, page_size, q)
+        tenants, total = await self.repo.list(
+            accessible_tenant_ids, page, page_size, q, sort_by=sort_by, sort_dir=sort_dir
+        )
         total_count = await self.repo.count_all()
         active_count = await self.repo.count_by_status("active")
         inactive_count = await self.repo.count_by_status("inactive")
