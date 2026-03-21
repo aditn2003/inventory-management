@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Edit Wireframe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+    <!-- Left Navigation -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-gray-200">
+            <span class="text-xl font-bold text-blue-600">Inventory Management System</span>
+        </div>
+        <nav class="flex-1 px-4 py-4 space-y-2">
+            <a href="tenant_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-buildings text-xl"></i>
+                <span class="font-medium">Tenants</span>
+            </a>
+            <a href="product_list.html" class="flex items-center space-x-3 text-blue-600 p-2 rounded-lg bg-blue-50">
+                <i class="ph ph-package text-xl"></i>
+                <span class="font-medium">Products</span>
+            </a>
+            <a href="inventory_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-stack text-xl"></i>
+                <span class="font-medium">Inventory</span>
+            </a>
+            <a href="order_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-shopping-cart text-xl"></i>
+                <span class="font-medium">Orders</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
+            <div class="flex items-center"></div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <i class="ph ph-bell text-xl"></i>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">JD</div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="flex-1 overflow-auto p-8">
+            <div class="max-w-3xl mx-auto">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center">
+                        <a href="product_detail.html" class="mr-4 p-2 rounded-full hover:bg-gray-200 text-gray-500 transition">
+                            <i class="ph ph-arrow-left text-xl"></i>
+                        </a>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Edit Product</h1>
+                            <p class="text-sm text-gray-500">Update product details for Acme Corp</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="window.location.href='product_detail.html'" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50 bg-white">Cancel</button>
+                        <button type="button" onclick="window.location.href='product_detail.html'" class="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700">Save Changes</button>
+                    </div>
+                </div>
+
+                <!-- Form Card -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <form class="space-y-6">
+                        
+                        <!-- Form Group 1 -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">SKU <span class="text-red-500">*</span></label>
+                                <input type="text" value="ADH-100" readonly class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 focus:outline-none">
+                                <p class="text-xs text-gray-400 mt-1">SKU cannot be changed after creation.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Product Name <span class="text-red-500">*</span></label>
+                                <input type="text" value="Industrial Adhesive" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+
+                        <!-- Form Group 2 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">High-strength industrial adhesive used for heavy bonding processes.</textarea>
+                        </div>
+
+                        <!-- Form Group 3 -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category <span class="text-red-500">*</span></label>
+                                <select class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option>Metals</option>
+                                    <option selected>Chemicals</option>
+                                    <option>Plastics</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Reorder Threshold <span class="text-red-500">*</span></label>
+                                <input type="number" value="25" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+
+                        <!-- Form Group 4 -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Cost per Unit <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input type="number" step="0.01" value="180.00" class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <div class="mt-2 flex items-center">
+                                    <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked class="sr-only peer">
+                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-900">Active</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

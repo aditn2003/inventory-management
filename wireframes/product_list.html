@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List Wireframe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons for simple icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+    <!-- Left Navigation -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-gray-200">
+            <span class="text-xl font-bold text-blue-600">Inventory Management System</span>
+        </div>
+        <nav class="flex-1 px-4 py-4 space-y-2">
+            <a href="tenant_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-buildings text-xl"></i>
+                <span class="font-medium">Tenants</span>
+            </a>
+            <a href="product_list.html" class="flex items-center space-x-3 text-blue-600 p-2 rounded-lg bg-blue-50">
+                <i class="ph ph-package text-xl"></i>
+                <span class="font-medium">Products</span>
+            </a>
+            <a href="inventory_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-stack text-xl"></i>
+                <span class="font-medium">Inventory</span>
+            </a>
+            <a href="order_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-shopping-cart text-xl"></i>
+                <span class="font-medium">Orders</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
+            <div class="flex items-center">
+                <!-- No search bar here per requirements -->
+            </div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <i class="ph ph-bell text-xl"></i>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                    JD
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="flex-1 overflow-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">Products</h1>
+                <div class="flex space-x-4">
+                    <select class="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Tenant...</option>
+                        <option value="1" selected>Acme Corp</option>
+                        <option value="2">Global Tech</option>
+                    </select>
+                    <button onclick="window.location.href='product_edit.html'" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">
+                        + New Product
+                    </button>
+                </div>
+            </div>
+
+            
+            <!-- Summary Tiles -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div class="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                        <p class="text-sm text-gray-600">Total Products</p>
+                    </div>
+                    <p class="font-semibold text-2xl text-gray-900">128</p>
+                    <p class="text-xs text-gray-400 mt-1">catalog items</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div class="w-3 h-3 bg-green-500 rounded-sm"></div>
+                        <p class="text-sm text-gray-600">Active / In-Active</p>
+                    </div>
+                    <p class="font-semibold text-2xl text-gray-900">110 / 18</p>
+                    <p class="text-xs text-gray-400 mt-1">product status</p>
+                </div>
+            </div>
+            <!-- List Container -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <!-- List Controls -->
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <div class="relative w-64">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                        <input type="text" placeholder="Search products..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex space-x-2 text-sm text-gray-600">
+                        <span>Sort by:</span>
+                        <select class="border-none focus:outline-none font-medium text-gray-900 cursor-pointer bg-transparent">
+                            <option>Name (A-Z)</option>
+                            <option>Status</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200 text-sm text-gray-500">
+                            <th class="p-4 font-medium">Name</th>
+                            <th class="p-4 font-medium">SKU</th>
+                            <th class="p-4 font-medium">Category</th>
+                            <th class="p-4 font-medium">Status</th>
+                            <th class="p-4 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <!-- Row 1 -->
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="window.location.href='product_detail.html'">
+                            <td class="p-4 font-medium text-gray-900">Industrial Adhesive</td>
+                            <td class="p-4 text-gray-600">ADH-100</td>
+                            <td class="p-4 text-gray-600">Chemicals</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="relative inline-block text-left group" onclick="event.stopPropagation();">
+                                    <button class="p-1 text-gray-400 hover:text-gray-600">
+                                        <i class="ph ph-dots-three-vertical text-xl"></i>
+                                    </button>
+                                    <!-- Action Menu Dropdown -->
+                                    <div class="hidden group-hover:block absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                        <div class="py-1">
+                                            <a href="product_detail.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View</a>
+                                            <a href="product_edit.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
+                                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Row 2 -->
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="window.location.href='product_detail.html'">
+                            <td class="p-4 font-medium text-gray-900">Aluminum Sheet</td>
+                            <td class="p-4 text-gray-600">ALM-500</td>
+                            <td class="p-4 text-gray-600">Metals</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">Inactive</span>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="relative inline-block text-left group" onclick="event.stopPropagation();">
+                                    <button class="p-1 text-gray-400 hover:text-gray-600">
+                                        <i class="ph ph-dots-three-vertical text-xl"></i>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                        <div class="py-1">
+                                            <a href="product_detail.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View</a>
+                                            <a href="product_edit.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
+                                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="p-4 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+                    <div>Showing 1 to 10 of 45 results</div>
+                    <div class="flex space-x-1">
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">Previous</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded bg-blue-50 text-blue-600 font-medium">1</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">2</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">3</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

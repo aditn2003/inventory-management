@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Detail Wireframe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+    <!-- Left Navigation -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-gray-200">
+            <span class="text-xl font-bold text-blue-600">Inventory Management System</span>
+        </div>
+        <nav class="flex-1 px-4 py-4 space-y-2">
+            <a href="tenant_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-buildings text-xl"></i>
+                <span class="font-medium">Tenants</span>
+            </a>
+            <a href="product_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-package text-xl"></i>
+                <span class="font-medium">Products</span>
+            </a>
+            <a href="inventory_list.html" class="flex items-center space-x-3 text-gray-700 p-2 rounded-lg hover:bg-gray-100">
+                <i class="ph ph-stack text-xl"></i>
+                <span class="font-medium">Inventory</span>
+            </a>
+            <a href="order_list.html" class="flex items-center space-x-3 text-blue-600 p-2 rounded-lg bg-blue-50">
+                <i class="ph ph-shopping-cart text-xl"></i>
+                <span class="font-medium">Orders</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
+            <div class="flex items-center"></div>
+            <div class="flex items-center space-x-4">
+                <button class="p-2 text-gray-400 hover:text-gray-600">
+                    <i class="ph ph-bell text-xl"></i>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">JD</div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="flex-1 overflow-auto p-8">
+            <!-- Back link & Actions -->
+            <div class="mb-4 flex items-center justify-between text-sm">
+                <a href="order_list.html" class="flex items-center text-gray-500 hover:text-gray-900">
+                    <i class="ph ph-arrow-left mr-2"></i>
+                    Back to Orders
+                </a>
+                <div class="flex space-x-3">
+                    <button onclick="window.location.href='order_edit.html'" class="flex items-center text-gray-600 hover:text-blue-600 border border-gray-300 px-3 py-1.5 rounded-md bg-white">
+                        <i class="ph ph-pencil-simple mr-2"></i> Edit
+                    </button>
+                    <button class="flex items-center text-gray-600 hover:text-red-600 border border-gray-300 px-3 py-1.5 rounded-md bg-white">
+                        <i class="ph ph-trash mr-2"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Details Header Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xl font-bold mr-4">
+                            A
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-3">
+                                <h1 class="text-2xl font-bold text-gray-900">Order ORD-1001</h1>
+                                <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                            </div>
+                            <p class="text-gray-500 mt-1">Product: <a href="product_detail.html" class="text-blue-600 hover:underline">Industrial Adhesive</a> &nbsp;|&nbsp; Tenant: Acme Corp</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Cards Grid -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <p class="text-sm text-gray-500 mb-1">Requested Quantity</p>
+                    <p class="font-semibold text-lg">10</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <p class="text-sm text-gray-500 mb-1">Cost per Unit</p>
+                    <p class="font-semibold text-lg">$180.00</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <p class="text-sm text-gray-500 mb-1">Current Stock (Inventory)</p>
+                    <p class="font-semibold text-lg text-blue-600">45 kg</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <p class="text-sm text-gray-500 mb-1">Reorder Point</p>
+                    <p class="font-semibold text-lg">25 kg</p>
+                </div>
+            </div>
+
+            <!-- Detailed Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="font-semibold text-gray-800">Additional Information</h2>
+                </div>
+                <div class="p-6 space-y-6 text-sm text-gray-700">
+                    <div>
+                        <p class="font-medium text-gray-900 mb-2">Order Notes</p>
+                        <p class="text-gray-600">Please process ASAP.</p>
+                    </div>
+                    <!-- Mock Inventory Update section (for Inventory Detail view context) -->
+                    </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

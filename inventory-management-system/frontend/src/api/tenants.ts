@@ -1,0 +1,28 @@
+import apiClient from './client';
+import type { Tenant, TenantCreateInput, TenantListResponse, TenantUpdateInput } from '@/types/tenant';
+
+export const tenantsApi = {
+  list: async (params?: { page?: number; page_size?: number; q?: string }): Promise<TenantListResponse> => {
+    const res = await apiClient.get('/tenants', { params });
+    return res.data;
+  },
+
+  get: async (id: string): Promise<Tenant> => {
+    const res = await apiClient.get(`/tenants/${id}`);
+    return res.data;
+  },
+
+  create: async (data: TenantCreateInput): Promise<Tenant> => {
+    const res = await apiClient.post('/tenants', data);
+    return res.data;
+  },
+
+  update: async (id: string, data: TenantUpdateInput): Promise<Tenant> => {
+    const res = await apiClient.put(`/tenants/${id}`, data);
+    return res.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/tenants/${id}`);
+  },
+};
