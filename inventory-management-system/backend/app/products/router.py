@@ -1,11 +1,10 @@
-from typing import Annotated, Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, get_tenant_id
-from app.auth.models import User
+from app.auth.dependencies import get_tenant_id
 from app.database import get_db
 from app.products.schemas import (
     ProductCreate,
@@ -17,17 +16,33 @@ from app.products.service import ProductService
 
 router = APIRouter()
 
+ProductSortBy = Literal["sku", "name", "category", "cost_per_unit", "current_stock", "status", "created_at"]
+ProductSortDir = Literal["asc", "desc"]
+
 
 @router.get("", response_model=ProductListResponse)
 async def list_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     q: Optional[str] = Query(None),
+    sort_by: Optional[ProductSortBy] = Query(
+        None,
+        description="When set with sort_dir, sort by this column. Omit both for default order (newest first).",
+    ),
+    sort_dir: Optional[ProductSortDir] = Query(
+        None,
+        description="asc or desc; must be used together with sort_by.",
+    ),
     session: AsyncSession = Depends(get_db),
     tenant_id: UUID = Depends(get_tenant_id),
 ) -> ProductListResponse:
+    if (sort_by is None) != (sort_dir is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="sort_by and sort_dir must both be provided or both omitted.",
+        )
     svc = ProductService(session)
-    return await svc.list_products(tenant_id, page, page_size, q)
+    return await svc.list_products(tenant_id, page, page_size, q, sort_by, sort_dir)
 
 
 @router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)

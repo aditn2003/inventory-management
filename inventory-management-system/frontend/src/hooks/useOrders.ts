@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { productsApi, type ProductListSortBy } from '@/api/products';
-import type { ProductListResponse } from '@/types/product';
+import { ordersApi, type OrderListSortBy } from '@/api/orders';
+import type { OrderListResponse } from '@/types/order';
 
-export function useProducts(
+export function useOrders(
   tenantId: string | null,
   params?: {
     page?: number;
     page_size?: number;
     q?: string;
-    sort_by?: ProductListSortBy;
+    sort_by?: OrderListSortBy;
     sort_dir?: 'asc' | 'desc';
+    status?: string;
   },
 ) {
-  const [data, setData] = useState<ProductListResponse | null>(null);
+  const [data, setData] = useState<OrderListResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,16 +22,18 @@ export function useProducts(
     setLoading(true);
     setError(null);
     try {
-      const result = await productsApi.list(params);
+      const result = await ordersApi.list(params);
       setData(result);
     } catch {
-      setError('Failed to load products.');
+      setError('Failed to load orders.');
     } finally {
       setLoading(false);
     }
   }, [tenantId, JSON.stringify(params)]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   return { data, loading, error, refetch: fetch };
 }

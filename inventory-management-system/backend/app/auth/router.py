@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, get_redis
 from app.auth.models import User
+from app.auth.repository import UserRepository
 from app.auth.invite_repository import UserInviteRepository, hash_invite_token
 from app.auth.schemas import (
     InvitePreviewResponse,
@@ -18,6 +19,8 @@ from app.auth.schemas import (
 )
 from app.auth.service import AuthService
 from app.database import get_db
+from app.tenants.schemas import TenantResponse
+from app.tenants.service import TenantService
 
 router = APIRouter()
 
@@ -130,3 +133,22 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
+
+
+@router.get("/me/accessible-tenants", response_model=list[TenantResponse])
+async def list_accessible_tenants(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=100),
+) -> list[TenantResponse]:
+    """Tenants the current user may work in (for X-Tenant-Id / UI selector). Not the admin tenants API."""
+    svc = TenantService(session)
+    if current_user.role == "admin":
+        accessible_ids = None
+    else:
+        repo = UserRepository(session)
+        assigned = await repo.get_assigned_tenant_ids(current_user.id)
+        accessible_ids = assigned if assigned else None
+    result = await svc.list_tenants(accessible_ids, page, page_size, None)
+    return result["data"]

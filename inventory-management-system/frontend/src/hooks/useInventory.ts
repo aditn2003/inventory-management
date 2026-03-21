@@ -1,10 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { inventoryApi } from '@/api/inventory';
+import { inventoryApi, type InventoryListSortBy } from '@/api/inventory';
 import type { InventoryListResponse } from '@/types/inventory';
 
 export function useInventory(
   tenantId: string | null,
-  params?: { page?: number; page_size?: number; q?: string }
+  params?: {
+    page?: number;
+    page_size?: number;
+    q?: string;
+    sort_by?: InventoryListSortBy;
+    sort_dir?: 'asc' | 'desc';
+    below_reorder_only?: boolean;
+  },
 ) {
   const [data, setData] = useState<InventoryListResponse | null>(null);
   const [loading, setLoading] = useState(false);

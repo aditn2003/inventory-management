@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Package, Buildings } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -13,15 +13,35 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { getErrorMessage } from '@/utils/apiError';
 import type { Product } from '@/types/product';
+import {
+  ProductSortHeader,
+  type ProductSortField,
+  type ProductSortState,
+} from '@/components/products/ProductSortHeader';
 
 export function ProductListPage() {
   const navigate = useNavigate();
   const { selectedTenant } = useTenant();
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [sort, setSort] = useState<ProductSortState>(null);
+
+  useEffect(() => {
+    setSort(null);
+  }, [selectedTenant?.id]);
+
+  const handleSortClick = useCallback((field: ProductSortField) => {
+    setSort((prev) => {
+      if (!prev || prev.field !== field) return { field, dir: 'asc' };
+      if (prev.dir === 'asc') return { field, dir: 'desc' };
+      return null;
+    });
+  }, []);
+
   const { data, loading, error, refetch } = useProducts(selectedTenant?.id ?? null, {
     page_size: 50,
     q: search || undefined,
+    ...(sort ? { sort_by: sort.field, sort_dir: sort.dir } : {}),
   });
 
   const handleDelete = async () => {
@@ -38,23 +58,35 @@ export function ProductListPage() {
   };
 
   const columns = [
-    { key: 'sku', header: 'SKU', className: 'w-28' },
-    { key: 'name', header: 'Name' },
-    { key: 'category', header: 'Category' },
     {
-      key: 'cost_per_unit',
-      header: 'Cost/Unit',
-      render: (p: Product) => `$${Number(p.cost_per_unit).toFixed(2)}`,
+      key: 'sku',
+      header: (
+        <ProductSortHeader label="SKU" field="sku" sort={sort} onSortClick={handleSortClick} />
+      ),
+      className: 'w-28',
     },
     {
-      key: 'stock',
-      header: 'Stock',
-      render: (p: Product) =>
-        p.inventory ? `${p.inventory.current_stock} ${p.inventory.unit}` : '—',
+      key: 'name',
+      header: (
+        <ProductSortHeader label="Name" field="name" sort={sort} onSortClick={handleSortClick} />
+      ),
+    },
+    {
+      key: 'category',
+      header: (
+        <ProductSortHeader
+          label="Category"
+          field="category"
+          sort={sort}
+          onSortClick={handleSortClick}
+        />
+      ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: (
+        <ProductSortHeader label="Status" field="status" sort={sort} onSortClick={handleSortClick} />
+      ),
       render: (p: Product) => <StatusBadge status={p.status} />,
     },
     {

@@ -31,7 +31,8 @@ export function LoginPage() {
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   if (accessToken && user) {
-    return <Navigate to="/tenants" replace />;
+    const home = user.role === 'admin' ? '/tenants' : '/products';
+    return <Navigate to={home} replace />;
   }
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -47,7 +48,7 @@ export function LoginPage() {
 
       const user = await authApi.me();
       dispatch(setCredentials({ user, accessToken: tokenData.access_token }));
-      navigate('/tenants');
+      navigate(user.role === 'admin' ? '/tenants' : '/products');
       toast.success(`Welcome, ${user.name || 'back'}!`);
     } catch (err) {
       toast.error(getErrorMessage(err));

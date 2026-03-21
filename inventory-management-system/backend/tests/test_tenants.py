@@ -33,3 +33,68 @@ async def test_create_tenant_requires_admin(client: AsyncClient, session: AsyncS
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_list_tenants_requires_admin(client: AsyncClient, session: AsyncSession):
+    await create_user(session, "listuser@test.com", role="user")
+    await create_tenant(session, "Acme")
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "listuser@test.com", "password": "test123!"},
+    )
+    token = login.json()["access_token"]
+    response = await client.get(
+        "/api/v1/tenants",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_tenant_requires_admin(client: AsyncClient, session: AsyncSession):
+    await create_user(session, "getuser@test.com", role="user")
+    t = await create_tenant(session, "Globex")
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "getuser@test.com", "password": "test123!"},
+    )
+    token = login.json()["access_token"]
+    response = await client.get(
+        f"/api/v1/tenants/{t.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_accessible_tenants_for_non_admin(client: AsyncClient, session: AsyncSession):
+    await create_user(session, "accuser@test.com", role="user")
+    await create_tenant(session, "Widget Co")
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "accuser@test.com", "password": "test123!"},
+    )
+    token = login.json()["access_token"]
+    response = await client.get(
+        "/api/v1/auth/me/accessible-tenants",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) >= 1
+    assert body[0]["name"] == "Widget Co"
+
+
+@pytest.mark.asyncio
+async def test_list_tenants_succeeds_for_admin(client: AsyncClient, session: AsyncSession):
+    token = await get_admin_token(client, session)
+    await create_tenant(session, "AdminListCo", display_id="TEN-ADM")
+    response = await client.get(
+        "/api/v1/tenants",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert any(t["name"] == "AdminListCo" for t in data)

@@ -9,6 +9,8 @@ interface InventoryQuickUpdateProps {
   externalEditVersion?: number;
   /** When set, stock text is red if current &lt; threshold (matches API below-reorder rule). */
   reorderThreshold?: number | null;
+  /** Larger typography and controls for detail cards vs table rows. */
+  variant?: 'table' | 'card';
 }
 
 export function InventoryQuickUpdate({
@@ -17,11 +19,22 @@ export function InventoryQuickUpdate({
   onSave,
   externalEditVersion = 0,
   reorderThreshold = null,
+  variant = 'table',
 }: InventoryQuickUpdateProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(current));
   const [saving, setSaving] = useState(false);
   const lastExternalVersion = useRef(0);
+  const isCard = variant === 'card';
+  const textClass = isCard ? 'text-lg font-semibold' : 'text-sm font-medium';
+  const iconSize = isCard ? 20 : 14;
+  const inputClass = isCard
+    ? 'w-28 text-base border rounded px-2 py-1.5 focus:outline-none focus:ring-2'
+    : 'w-20 text-sm border rounded px-2 py-0.5 focus:outline-none focus:ring-1';
+
+  useEffect(() => {
+    if (!editing) setValue(String(current));
+  }, [current, editing]);
 
   useEffect(() => {
     if (externalEditVersion > lastExternalVersion.current) {
@@ -57,9 +70,7 @@ export function InventoryQuickUpdate({
   if (!editing) {
     return (
       <div className="flex items-center gap-2" onClick={stopRowNav}>
-        <span
-          className={`text-sm font-medium ${belowReorder ? 'text-red-600' : 'text-gray-900'}`}
-        >
+        <span className={`${textClass} ${belowReorder ? 'text-red-600' : 'text-gray-900'}`}>
           {current} {unit}
         </span>
         <button
@@ -69,10 +80,10 @@ export function InventoryQuickUpdate({
             setValue(String(current));
             setEditing(true);
           }}
-          className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Edit stock"
+          className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label="Edit current inventory"
         >
-          <PencilSimple size={14} />
+          <PencilSimple size={iconSize} />
         </button>
       </div>
     );
@@ -85,7 +96,7 @@ export function InventoryQuickUpdate({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onClick={stopRowNav}
-        className={`w-20 text-sm border rounded px-2 py-0.5 focus:outline-none focus:ring-1 ${
+        className={`${inputClass} ${
           editingBelowReorder
             ? 'border-red-300 text-red-700 focus:ring-red-500'
             : 'border-gray-300 focus:ring-blue-500'
@@ -100,21 +111,22 @@ export function InventoryQuickUpdate({
           void handleSave();
         }}
         disabled={saving}
-        className="p-1 text-green-600 hover:text-green-700 transition-colors disabled:opacity-50"
+        className="p-1 text-green-600 hover:text-green-700 transition-colors disabled:opacity-50 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
         aria-label="Save"
       >
-        <Check size={14} weight="bold" />
+        <Check size={iconSize} weight="bold" />
       </button>
       <button
         type="button"
         onClick={(e) => {
           stopRowNav(e);
+          setValue(String(current));
           setEditing(false);
         }}
-        className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+        className="p-1 text-gray-400 hover:text-gray-600 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
         aria-label="Cancel"
       >
-        <X size={14} weight="bold" />
+        <X size={iconSize} weight="bold" />
       </button>
     </div>
   );

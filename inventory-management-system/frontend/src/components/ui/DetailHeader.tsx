@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from '@phosphor-icons/react';
 
 interface DetailHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: ReactNode;
+  subtitle?: ReactNode;
   backTo?: string;
   backLabel?: string;
   actions?: React.ReactNode;
@@ -25,7 +26,9 @@ export function DetailHeader({ title, subtitle, backTo, backLabel = 'Back', acti
           </button>
         )}
         <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+        {subtitle != null && subtitle !== '' && (
+          <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+        )}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
     </div>

@@ -17,7 +17,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/tenants', label: 'Tenants', icon: <Buildings size={20} /> },
+  { to: '/tenants', label: 'Tenants', icon: <Buildings size={20} />, adminOnly: true },
   { to: '/products', label: 'Products', icon: <Package size={20} /> },
   { to: '/inventory', label: 'Inventory', icon: <Stack size={20} /> },
   { to: '/orders', label: 'Orders', icon: <ShoppingCart size={20} /> },

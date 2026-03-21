@@ -23,7 +23,6 @@ import { ProductEditPage } from '@/pages/products/ProductEditPage';
 // Inventory pages
 import { InventoryListPage } from '@/pages/inventory/InventoryListPage';
 import { InventoryDetailPage } from '@/pages/inventory/InventoryDetailPage';
-import { InventoryEditPage } from '@/pages/inventory/InventoryEditPage';
 
 // Order pages
 import { OrderListPage } from '@/pages/orders/OrderListPage';
@@ -83,13 +82,15 @@ function AppRoutes() {
         {/* Protected routes */}
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="/tenants" replace />} />
+            <Route index element={<Navigate to="/products" replace />} />
 
-            {/* Tenants */}
-            <Route path="tenants" element={<TenantListPage />} />
-            <Route path="tenants/new" element={<TenantEditPage />} />
-            <Route path="tenants/:id" element={<TenantDetailPage />} />
-            <Route path="tenants/:id/edit" element={<TenantEditPage />} />
+            {/* Tenants — admin only */}
+            <Route element={<AuthGuard requiredRole="admin" />}>
+              <Route path="tenants" element={<TenantListPage />} />
+              <Route path="tenants/new" element={<TenantEditPage />} />
+              <Route path="tenants/:id" element={<TenantDetailPage />} />
+              <Route path="tenants/:id/edit" element={<TenantEditPage />} />
+            </Route>
 
             {/* Products */}
             <Route path="products" element={<ProductListPage />} />
@@ -100,7 +101,6 @@ function AppRoutes() {
             {/* Inventory */}
             <Route path="inventory" element={<InventoryListPage />} />
             <Route path="inventory/:id" element={<InventoryDetailPage />} />
-            <Route path="inventory/:id/edit" element={<InventoryEditPage />} />
 
             {/* Orders */}
             <Route path="orders" element={<OrderListPage />} />
@@ -117,7 +117,7 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/tenants" replace />} />
+        <Route path="*" element={<Navigate to="/products" replace />} />
       </Routes>
     </BrowserRouter>
   );

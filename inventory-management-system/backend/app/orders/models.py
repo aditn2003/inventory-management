@@ -33,7 +33,10 @@ class Order(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     __table_args__ = (
-        CheckConstraint("status IN ('created', 'pending', 'cancelled')", name="orders_status_check"),
+        CheckConstraint(
+            "status IN ('created', 'pending', 'confirmed', 'cancelled')",
+            name="orders_status_check",
+        ),
         CheckConstraint("requested_qty > 0", name="orders_requested_qty_check"),
     )
 

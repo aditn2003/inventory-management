@@ -13,10 +13,19 @@ import { getErrorMessage } from '@/utils/apiError';
 import type { Product } from '@/types/product';
 
 const createSchema = z.object({
-  product_id: z.string().min(1, 'Product is required'),
-  requested_qty: z.number({ coerce: true }).int().positive('Qty must be positive'),
+  product_id: z.string().min(1, 'Please select a product.'),
+  requested_qty: z.preprocess((val) => {
+    if (val === '' || val === null || val === undefined) return undefined;
+    if (typeof val === 'number' && Number.isNaN(val)) return undefined;
+    return val;
+  }, z
+    .number({
+      required_error: 'Requested quantity is required.',
+      invalid_type_error: 'Requested quantity is required.',
+    })
+    .int('Requested quantity must be a whole number.')
+    .positive('Requested quantity must be greater than zero.')),
   notes: z.string().optional(),
-  order_date: z.string().optional(),
 });
 
 const editCreatedSchema = z.object({
@@ -57,7 +66,7 @@ export function OrderEditPage() {
     if (!isNew && id) {
       ordersApi.get(id).then((o) => {
         setOrderStatus(o.status);
-        reset({ product_id: o.product_id, requested_qty: o.requested_qty, notes: o.notes ?? '', order_date: o.order_date });
+        reset({ product_id: o.product_id, requested_qty: o.requested_qty, notes: o.notes ?? '' });
       });
     }
   }, [id, isNew, selectedTenant]);
@@ -74,13 +83,20 @@ export function OrderEditPage() {
           product_id: values.product_id,
           requested_qty: values.requested_qty,
           notes: values.notes,
-          order_date: values.order_date,
         });
-        toast.success(`Order ${o.display_id} created (${o.status}).`);
+        const statusLabel =
+          o.status === 'pending'
+            ? 'Pending'
+            : o.status === 'created'
+              ? 'Created'
+              : o.status === 'confirmed'
+                ? 'Confirmed'
+                : o.status;
+        toast.success(`Order ${o.display_id} saved with status ${statusLabel}.`);
         navigate(`/orders/${o.id}`);
       } else {
         const updateData =
-          orderStatus === 'created'
+          orderStatus === 'confirmed'
             ? { notes: values.notes }
             : { requested_qty: values.requested_qty, notes: values.notes };
         await ordersApi.update(id!, updateData);
@@ -94,7 +110,7 @@ export function OrderEditPage() {
     }
   };
 
-  const qtyReadOnly = !isNew && orderStatus === 'created';
+  const qtyReadOnly = !isNew && orderStatus === 'confirmed';
 
   return (
     <div className="space-y-6">
@@ -108,12 +124,17 @@ export function OrderEditPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
           {isNew && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+              <label htmlFor="order-product" className="block text-sm font-medium text-gray-700 mb-1">
+                Select Product <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
               <select
+                id="order-product"
                 {...register('product_id')}
+                required
+                aria-required="true"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Select active product...</option>
+                <option value="">Select product…</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.sku} — {p.name}
@@ -125,14 +146,28 @@ export function OrderEditPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Quantity
-              {qtyReadOnly && <span className="ml-1 text-xs text-gray-400">(read-only — order is confirmed)</span>}
+            <label htmlFor="order-requested-qty" className="block text-sm font-medium text-gray-700 mb-1">
+              {isNew ? (
+                <>
+                  Requested Quantity <span className="text-red-600" aria-hidden="true">*</span>
+                </>
+              ) : (
+                <>
+                  Requested quantity
+                  {qtyReadOnly && (
+                    <span className="ml-1 text-xs font-normal text-gray-400">(read-only — order is confirmed)</span>
+                  )}
+                </>
+              )}
             </label>
             <input
+              id="order-requested-qty"
               {...register('requested_qty', { valueAsNumber: true })}
               type="number"
               min="1"
+              step="1"
+              required={isNew && !qtyReadOnly}
+              aria-required={isNew && !qtyReadOnly}
               disabled={qtyReadOnly}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
             />
@@ -147,17 +182,6 @@ export function OrderEditPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
-
-          {isNew && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Order Date (optional)</label>
-              <input
-                {...register('order_date')}
-                type="date"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
 
           <div className="flex gap-3 pt-2">
             <button

@@ -1,8 +1,23 @@
 import apiClient from './client';
 import type { Order, OrderCreateInput, OrderListResponse, OrderUpdateInput } from '@/types/order';
 
+export type OrderListSortBy =
+  | 'created_at'
+  | 'order_date'
+  | 'status'
+  | 'requested_qty'
+  | 'display_id'
+  | 'product_name';
+
 export const ordersApi = {
-  list: async (params?: { page?: number; page_size?: number; q?: string }): Promise<OrderListResponse> => {
+  list: async (params?: {
+    page?: number;
+    page_size?: number;
+    q?: string;
+    sort_by?: OrderListSortBy;
+    sort_dir?: 'asc' | 'desc';
+    status?: string;
+  }): Promise<OrderListResponse> => {
     const res = await apiClient.get('/orders', { params });
     return res.data;
   },

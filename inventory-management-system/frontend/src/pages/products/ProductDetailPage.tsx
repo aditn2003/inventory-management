@@ -77,13 +77,13 @@ export function ProductDetailPage() {
       <InfoCardGrid
         cards={[
           { label: 'Category', value: product.category },
-          { label: 'Cost per Unit', value: `$${Number(product.cost_per_unit).toFixed(2)}` },
+          { label: 'Cost per unit', value: `$${Number(product.cost_per_unit).toFixed(2)}` },
           {
-            label: 'Current Stock',
+            label: 'Current inventory',
             value: stockValue,
             valueClassName: stockColorClass,
           },
-          { label: 'Reorder Point', value: product.reorder_threshold },
+          { label: 'Reorder threshold', value: product.reorder_threshold },
         ]}
       />
 

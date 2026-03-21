@@ -15,16 +15,34 @@ class OrderService:
         self.repo = OrderRepository(session)
         self.product_repo = ProductRepository(session)
 
-    async def list_orders(self, tenant_id: UUID, page: int, page_size: int, q: Optional[str]) -> dict:
-        orders, total = await self.repo.list(tenant_id, page, page_size, q)
+    async def list_orders(
+        self,
+        tenant_id: UUID,
+        page: int,
+        page_size: int,
+        q: Optional[str],
+        sort_by: Optional[str] = None,
+        sort_dir: Optional[str] = None,
+        status_filter: Optional[str] = None,
+    ) -> dict:
+        orders, total = await self.repo.list(
+            tenant_id, page, page_size, q, sort_by, sort_dir, status_filter
+        )
         pending = await self.repo.count_by_status(tenant_id, "pending")
         created = await self.repo.count_by_status(tenant_id, "created")
+        confirmed = await self.repo.count_by_status(tenant_id, "confirmed")
         cancelled = await self.repo.count_by_status(tenant_id, "cancelled")
-        all_count = pending + created + cancelled
+        all_count = pending + created + confirmed + cancelled
         return {
             "data": orders,
             "meta": {"total": total, "page": page, "page_size": page_size},
-            "summary": {"total": all_count, "pending": pending, "created": created, "cancelled": cancelled},
+            "summary": {
+                "total": all_count,
+                "pending": pending,
+                "created": created,
+                "confirmed": confirmed,
+                "cancelled": cancelled,
+            },
         }
 
     async def get_order(self, order_id: UUID, tenant_id: UUID):
@@ -39,7 +57,6 @@ class OrderService:
         product_id: UUID,
         requested_qty: int,
         notes: Optional[str],
-        order_date: Optional[date],
     ):
         product = await self.product_repo.get_by_id(product_id, tenant_id)
         if not product:
@@ -52,15 +69,12 @@ class OrderService:
             raise ValueError("Inventory not found for this product.")
 
         display_id = await self.repo.get_next_display_id(tenant_id)
-        order_date = order_date or date.today()
+        order_date = date.today()
 
         if inventory.current_stock >= requested_qty:
-            inventory.current_stock -= requested_qty
             order_status = "created"
         else:
             order_status = "pending"
-
-        await self.session.flush()  # persist inventory change before creating order
 
         order = await self.repo.create(
             display_id=display_id,
@@ -80,13 +94,13 @@ class OrderService:
         if order.status == "cancelled":
             raise ValueError("Cancelled orders cannot be edited.")
 
-        if order.status == "created" and requested_qty is not None and requested_qty != order.requested_qty:
-            raise ValueError("Quantity cannot be changed on a confirmed (created) order. Only notes can be updated.")
+        if order.status == "confirmed" and requested_qty is not None and requested_qty != order.requested_qty:
+            raise ValueError("Quantity cannot be changed on a confirmed order. Only notes can be updated.")
 
         updates = {}
         if notes is not None:
             updates["notes"] = notes
-        if requested_qty is not None and order.status == "pending":
+        if requested_qty is not None and order.status in ("pending", "created"):
             updates["requested_qty"] = requested_qty
 
         if updates:
@@ -97,8 +111,10 @@ class OrderService:
     async def confirm_order(self, order_id: UUID, tenant_id: UUID):
         order = await self.get_order(order_id, tenant_id)
 
-        if order.status != "pending":
-            raise ValueError(f"Only pending orders can be confirmed. Current status: {order.status}.")
+        if order.status not in ("pending", "created"):
+            raise ValueError(
+                f"Only pending or created orders can be confirmed. Current status: {order.status}."
+            )
 
         inventory = await self.repo.get_inventory_for_update(order.product_id)
         if not inventory:
@@ -110,7 +126,7 @@ class OrderService:
             )
 
         inventory.current_stock -= order.requested_qty
-        await self.repo.update(order, status="created")
+        await self.repo.update(order, status="confirmed")
         await self.session.commit()
         return await self.repo.get_by_id(order_id, tenant_id)
 
@@ -120,12 +136,8 @@ class OrderService:
         if order.status == "cancelled":
             raise ValueError("Order is already cancelled.")
 
-        was_created = order.status == "created"
-
-        if was_created:
-            inventory = await self.repo.get_inventory_for_update(order.product_id)
-            if inventory:
-                inventory.current_stock += order.requested_qty
+        if order.status == "confirmed":
+            raise ValueError("Confirmed orders cannot be cancelled.")
 
         await self.repo.update(order, status="cancelled")
         await self.session.commit()
@@ -133,5 +145,9 @@ class OrderService:
 
     async def delete_order(self, order_id: UUID, tenant_id: UUID) -> None:
         order = await self.get_order(order_id, tenant_id)
+        if order.status == "confirmed":
+            inventory = await self.repo.get_inventory_for_update(order.product_id)
+            if inventory:
+                inventory.current_stock += order.requested_qty
         await self.repo.hard_delete(order)
         await self.session.commit()

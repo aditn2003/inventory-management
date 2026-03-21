@@ -2,7 +2,8 @@ export const STATUS_BADGE_COLORS: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
   inactive: 'bg-gray-100 text-gray-600',
   created: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
+  pending: 'bg-yellow-100 text-yellow-800',
+  confirmed: 'bg-emerald-100 text-emerald-800',
   cancelled: 'bg-red-100 text-red-600',
 };
 
