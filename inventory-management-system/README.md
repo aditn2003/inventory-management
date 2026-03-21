@@ -20,10 +20,10 @@ The seed script runs automatically on first startup when `SEED_ON_STARTUP=true` 
 
 ## Default Credentials
 
-| Role  | Email (login only) | Display name           | Password   |
-|-------|--------------------|-------------------------|------------|
-| Admin | admin@ims.com      | System Administrator    | admin123!  |
-| User  | user@ims.com       | Demo User               | user123!   |
+| Role  | Email (login only) | Display name         | Password  |
+| ----- | ------------------ | -------------------- | --------- |
+| Admin | admin@ims.com      | System Administrator | admin123! |
+| User  | user@ims.com       | Demo User            | user123!  |
 
 Emails are **not** shown in the UI after login; the header and user lists use **display names** only.
 
@@ -63,19 +63,19 @@ inventory-management-system/
 
 ## Stack
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| Frontend    | React 18, Vite, TypeScript, Tailwind CSS |
-| State       | Redux Toolkit                     |
-| Forms       | react-hook-form + zod             |
-| HTTP client | Axios (JWT + X-Tenant-Id interceptors) |
-| Backend     | Python 3.12 + FastAPI             |
-| ORM         | SQLAlchemy 2.0 (asyncio)          |
-| DB          | PostgreSQL 16 with RLS            |
+| Layer       | Technology                                |
+| ----------- | ----------------------------------------- |
+| Frontend    | React 18, Vite, TypeScript, Tailwind CSS  |
+| State       | Redux Toolkit                             |
+| Forms       | react-hook-form + zod                     |
+| HTTP client | Axios (JWT + X-Tenant-Id interceptors)    |
+| Backend     | Python 3.12 + FastAPI                     |
+| ORM         | SQLAlchemy 2.0 (asyncio)                  |
+| DB          | PostgreSQL 16 with RLS                    |
 | Cache       | Redis 7 (token blacklist + rate limiting) |
-| Auth        | JWT (access 15m + refresh 7d)     |
-| Proxy       | Nginx                             |
-| Containers  | Docker Compose                    |
+| Auth        | JWT (access 15m + refresh 7d)             |
+| Proxy       | Nginx                                     |
+| Containers  | Docker Compose                            |
 
 ## Assumptions
 
@@ -96,81 +96,81 @@ Defense-in-depth controls in this stack. **Configurable** items show **defaults*
 
 ### Nginx (edge proxy)
 
-| Control | Detail |
-|--------|--------|
-| **Rate limiting** | **`auth`** zone: **5 requests/minute** per client IP; **`api`** zone: **600 requests/minute** per IP (`nginx/nginx.conf`). |
-| **Auth routes** | **`/api/v1/auth/login`**, **`register`**, **`register-invite`**: `limit_req zone=auth burst=5 nodelay`. |
-| **Invite preview** | **`/api/v1/auth/invite/`**: `auth` zone with **`burst=10`**. |
-| **General API** | **`/api/`**: `limit_req zone=api burst=20 nodelay`. |
-| **HTTP headers** | **`X-Content-Type-Options: nosniff`**, **`X-Frame-Options: DENY`**, **`X-XSS-Protection: 1; mode=block`**. |
-| **Body size** | **`client_max_body_size 1m`**. |
-| **Forwarding** | **`X-Real-IP`**, **`X-Forwarded-For`**, **`X-Forwarded-Proto`** to the API. |
+| Control            | Detail                                                                                                                     |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| **Rate limiting**  | **`auth`** zone: **5 requests/minute** per client IP; **`api`** zone: **600 requests/minute** per IP (`nginx/nginx.conf`). |
+| **Auth routes**    | **`/api/v1/auth/login`**, **`register`**, **`register-invite`**: `limit_req zone=auth burst=5 nodelay`.                    |
+| **Invite preview** | **`/api/v1/auth/invite/`**: `auth` zone with **`burst=10`**.                                                               |
+| **General API**    | **`/api/`**: `limit_req zone=api burst=20 nodelay`.                                                                        |
+| **HTTP headers**   | **`X-Content-Type-Options: nosniff`**, **`X-Frame-Options: DENY`**, **`X-XSS-Protection: 1; mode=block`**.                 |
+| **Body size**      | **`client_max_body_size 1m`**.                                                                                             |
+| **Forwarding**     | **`X-Real-IP`**, **`X-Forwarded-For`**, **`X-Forwarded-Proto`** to the API.                                                |
 
 Brute-force and abuse against login, registration, and invite flows are throttled at the edge before FastAPI.
 
 ### Invitation links (token handling & expiry)
 
-| Control | Detail |
-|--------|--------|
-| **No raw token in DB** | Only **SHA-256** of the token is stored; the **raw token** is only in the **email link** and in transit. |
-| **Time-limited** | **`expires_at`** enforced in code. TTL = **`INVITE_EXPIRE_HOURS`** (default **`168`** = 7 days). Use **`INVITE_EXPIRE_HOURS=24`** for 24-hour links. |
-| **Single use** | **`register-invite`** sets **`consumed_at`**; token cannot be reused. |
-| **Invalid / expired** | No matching valid invite → **404** (or equivalent) for bad links. |
-| **Re-invite** | Pending invites for the same email are **revoked** before a new one is created. |
-| **API validation** | Preview: **`min_length`** on `token` query; register-invite: **min token length** in Pydantic. |
-| **Verification** | **`GET /auth/invite/preview`** and **`POST /auth/register-invite`** both **hash the token** and run **expiry / consumed** checks before returning data or creating a user. |
+| Control                | Detail                                                                                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No raw token in DB** | Only **SHA-256** of the token is stored; the **raw token** is only in the **email link** and in transit.                                                                   |
+| **Time-limited**       | **`expires_at`** enforced in code. TTL = **`INVITE_EXPIRE_HOURS`** (default **`168`** = 7 days). Use **`INVITE_EXPIRE_HOURS=24`** for 24-hour links.                       |
+| **Single use**         | **`register-invite`** sets **`consumed_at`**; token cannot be reused.                                                                                                      |
+| **Invalid / expired**  | No matching valid invite → **404** (or equivalent) for bad links.                                                                                                          |
+| **Re-invite**          | Pending invites for the same email are **revoked** before a new one is created.                                                                                            |
+| **API validation**     | Preview: **`min_length`** on `token` query; register-invite: **min token length** in Pydantic.                                                                             |
+| **Verification**       | **`GET /auth/invite/preview`** and **`POST /auth/register-invite`** both **hash the token** and run **expiry / consumed** checks before returning data or creating a user. |
 
 ### Authentication & session (backend)
 
-| Control | Detail |
-|--------|--------|
-| **Passwords** | **bcrypt** (Passlib), **`bcrypt__rounds=12`**. |
-| **JWT** | **HS256**; secret from **`JWT_SECRET`**. |
-| **Access / refresh** | Defaults: **`ACCESS_TOKEN_EXPIRE_MINUTES=15`**, **`REFRESH_TOKEN_EXPIRE_DAYS=7`**. |
-| **Refresh rotation** | Old refresh token **blacklisted** when issuing a new pair. |
-| **Logout** | **Redis** blacklist (`blacklist:` prefix) so logged-out / rotated tokens are not reusable. |
-| **Login errors** | Generic **“Invalid email or password”** (no user enumeration). |
+| Control              | Detail                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| **Passwords**        | **bcrypt** (Passlib), **`bcrypt__rounds=12`**.                                             |
+| **JWT**              | **HS256**; secret from **`JWT_SECRET`**.                                                   |
+| **Access / refresh** | Defaults: **`ACCESS_TOKEN_EXPIRE_MINUTES=15`**, **`REFRESH_TOKEN_EXPIRE_DAYS=7`**.         |
+| **Refresh rotation** | Old refresh token **blacklisted** when issuing a new pair.                                 |
+| **Logout**           | **Redis** blacklist (`blacklist:` prefix) so logged-out / rotated tokens are not reusable. |
+| **Login errors**     | Generic **“Invalid email or password”** (no user enumeration).                             |
 
 ### Privacy (email vs display name)
 
-| Control | Detail |
-|--------|--------|
-| **`/me` / `UserResponse`** | **Email omitted**; UI uses **display name**. |
-| **Admin user list** | **Name**, role, tenant access — **not** login email. |
-| **Invite preview** | Invited **email** shown only to callers who have the **secret token** (UX for the registrant). |
+| Control                    | Detail                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| **`/me` / `UserResponse`** | **Email omitted**; UI uses **display name**.                                                   |
+| **Admin user list**        | **Name**, role, tenant access — **not** login email.                                           |
+| **Invite preview**         | Invited **email** shown only to callers who have the **secret token** (UX for the registrant). |
 
 ### Multi-tenancy & authorization
 
-| Control | Detail |
-|--------|--------|
-| **`X-Tenant-Id`** | Required for tenant-scoped APIs; validated as **UUID**. |
+| Control               | Detail                                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **`X-Tenant-Id`**     | Required for tenant-scoped APIs; validated as **UUID**.                                                        |
 | **Tenant allow-list** | Users with **assignment rows** may only use those tenants; **no rows** = all tenants (`auth/dependencies.py`). |
-| **PostgreSQL RLS** | Tenant isolation at the database layer. |
-| **Admin APIs** | User management & invitations require **`require_admin`**. |
+| **PostgreSQL RLS**    | Tenant isolation at the database layer.                                                                        |
+| **Admin APIs**        | User management & invitations require **`require_admin`**.                                                     |
 
 ### Invite email delivery
 
-| Control | Detail |
-|--------|--------|
+| Control              | Detail                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------- |
 | **`RESEND_API_KEY`** | **Required** — missing key → **503** on invite; **no** invite URL returned in JSON as a fallback. |
 
 ### CORS & secrets
 
-| Control | Detail |
-|--------|--------|
-| **`CORS_ORIGINS`** | Comma-separated allowlist. |
-| **Secrets** | DB, Redis, JWT, Resend — via **`.env`** (see **`.env.example`**); do not commit real secrets. |
+| Control            | Detail                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **`CORS_ORIGINS`** | Comma-separated allowlist.                                                                    |
+| **Secrets**        | DB, Redis, JWT, Resend — via **`.env`** (see **`.env.example`**); do not commit real secrets. |
 
 ## Orders & inventory
 
 Orders use four **statuses** (`created`, `pending`, `confirmed`, `cancelled`):
 
-| Status | Meaning |
-|--------|--------|
-| **`pending`** | Placed when **current stock is below the requested quantity** at creation time. No stock reserved. |
-| **`created`** | Placed when **stock was sufficient** at creation time. Still **no deduction** until someone clicks **Confirm**. |
-| **`confirmed`** | User confirmed the order; **stock is reduced** by the requested quantity. |
-| **`cancelled`** | Cancelled before confirmation; **inventory unchanged**. |
+| Status          | Meaning                                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| **`pending`**   | Placed when **current stock is below the requested quantity** at creation time. No stock reserved.              |
+| **`created`**   | Placed when **stock was sufficient** at creation time. Still **no deduction** until someone clicks **Confirm**. |
+| **`confirmed`** | User confirmed the order; **stock is reduced** by the requested quantity.                                       |
+| **`cancelled`** | Cancelled before confirmation; **inventory unchanged**.                                                         |
 
 **Rules:**
 

@@ -70,10 +70,11 @@ export function OrderDetailPage() {
 
   const p = order.product;
   const inv = p?.inventory;
-  const unconfirmed =
-    order.status === "pending" || order.status === "created";
+  const unconfirmed = order.status === "pending" || order.status === "created";
   const canConfirmStock =
-    unconfirmed && inv != null ? inv.current_stock >= order.requested_qty : null;
+    unconfirmed && inv != null
+      ? inv.current_stock >= order.requested_qty
+      : null;
 
   const requestedQtyClass =
     order.status === "cancelled"
@@ -164,7 +165,8 @@ export function OrderDetailPage() {
                 </p>
                 {order.status === "confirmed" && inv ? (
                   <p className="text-xs text-gray-500 mt-1 leading-snug">
-                    (Current count reflects stock after this order was confirmed.)
+                    (Current count reflects stock after this order was
+                    confirmed.)
                   </p>
                 ) : null}
               </div>
@@ -185,14 +187,18 @@ export function OrderDetailPage() {
 
       {p && (
         <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-900">Product details</h2>
+          <h2 className="text-sm font-semibold text-gray-900">
+            Product details
+          </h2>
 
           {p.description ? (
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
               {p.description}
             </p>
           ) : (
-            <p className="text-sm text-gray-500 italic">No description on file.</p>
+            <p className="text-sm text-gray-500 italic">
+              No description on file.
+            </p>
           )}
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
