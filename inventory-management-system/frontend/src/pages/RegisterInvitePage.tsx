@@ -87,7 +87,7 @@ export function RegisterInvitePage() {
       const user = await authApi.me();
       dispatch(setCredentials({ user, accessToken: loginRes.access_token }));
       toast.success(`Welcome, ${user.name}!`);
-      navigate('/tenants');
+      navigate('/products');
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {

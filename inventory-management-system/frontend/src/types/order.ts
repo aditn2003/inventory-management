@@ -1,13 +1,21 @@
-export type OrderStatus = 'created' | 'pending' | 'cancelled';
+export type OrderStatus = 'created' | 'pending' | 'confirmed' | 'cancelled';
+
+export interface OrderProductInventory {
+  id: string;
+  current_stock: number;
+  unit: string;
+}
 
 export interface OrderProduct {
   id: string;
   sku: string;
   name: string;
+  description: string | null;
   category: string;
   cost_per_unit: number;
   reorder_threshold: number;
   status: string;
+  inventory: OrderProductInventory | null;
 }
 
 export interface Order {
@@ -28,6 +36,7 @@ export interface OrderSummary {
   total: number;
   pending: number;
   created: number;
+  confirmed: number;
   cancelled: number;
 }
 
@@ -41,7 +50,6 @@ export interface OrderCreateInput {
   product_id: string;
   requested_qty: number;
   notes?: string;
-  order_date?: string;
 }
 
 export interface OrderUpdateInput {

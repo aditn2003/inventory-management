@@ -10,7 +10,6 @@ class OrderCreate(BaseModel):
     product_id: UUID
     requested_qty: int
     notes: Optional[str] = None
-    order_date: Optional[date] = None
 
 
 class OrderUpdate(BaseModel):
@@ -18,22 +17,24 @@ class OrderUpdate(BaseModel):
     notes: Optional[str] = None
 
 
-class ProductBrief(BaseModel):
-    id: UUID
-    sku: str
-    name: str
-    category: str
-    cost_per_unit: Decimal
-    reorder_threshold: int
-    status: str
-
-    model_config = {"from_attributes": True}
-
-
 class InventoryBrief(BaseModel):
     id: UUID
     current_stock: int
     unit: str
+
+    model_config = {"from_attributes": True}
+
+
+class ProductBrief(BaseModel):
+    id: UUID
+    sku: str
+    name: str
+    description: Optional[str] = None
+    category: str
+    cost_per_unit: Decimal
+    reorder_threshold: int
+    status: str
+    inventory: Optional[InventoryBrief] = None
 
     model_config = {"from_attributes": True}
 
@@ -58,6 +59,7 @@ class OrderSummary(BaseModel):
     total: int
     pending: int
     created: int
+    confirmed: int
     cancelled: int
 
 

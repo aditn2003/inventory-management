@@ -11,11 +11,11 @@ from datetime import date
 from decimal import Decimal
 
 from passlib.context import CryptContext
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
-from app.auth.models import User, UserTenantRole
+from app.auth.models import User
 from app.tenants.models import Tenant
 from app.products.models import Product
 from app.inventory.models import Inventory
@@ -64,7 +64,6 @@ STOCK_LEVELS = [120, 8, 350, 25, 5, 80, 15, 200, 3, 150]
 
 
 async def seed(session: AsyncSession) -> None:
-    # Check if already seeded
     result = await session.execute(select(func.count()).select_from(User))
     if result.scalar_one() > 0:
         print("[seed] DB already seeded — skipping.")

@@ -16,7 +16,7 @@ docker compose up --build
 http://localhost
 ```
 
-The seed script runs automatically on first startup.
+The seed script runs automatically on first startup when `SEED_ON_STARTUP=true` (see `.env.example`).
 
 ## Default Credentials
 
@@ -27,7 +27,7 @@ The seed script runs automatically on first startup.
 
 Emails are **not** shown in the UI after login; the header and user lists use **display names** only.
 
-After pulling changes, run **`alembic upgrade head`** (or recreate DB) so the `users.name` column exists.
+After pulling changes, run **`alembic upgrade head`** inside the API container (or locally from `backend/`) so migrations apply — including order status **`confirmed`** and related constraints.
 
 ### Inviting users (admin)
 
@@ -49,7 +49,7 @@ inventory-management-system/
 │   │   ├── tenants/  Multi-tenant CRUD (TEN-XXX IDs)
 │   │   ├── products/ Product CRUD (SKU immutable)
 │   │   ├── inventory/Inventory + stock management
-│   │   ├── orders/   Orders + state machine (created/pending/cancelled)
+│   │   ├── orders/   Orders + state machine (pending / created / confirmed / cancelled)
 │   │   └── users/    Admin-only user management + tenant assignments
 │   └── tests/        pytest test suite
 └── frontend/         React 18 + Vite + TypeScript + Tailwind
@@ -85,8 +85,8 @@ inventory-management-system/
 
 - **Multi-tenancy**: Row-Level Security enforced at DB level; tenant selected via header dropdown
 - **RBAC**: Admin (full access) vs User (CRUD on tenant-scoped data)
-- **Order state machine**: created / pending / cancelled with automatic stock deduction/restoration
-- **Inventory management**: Auto-created on product creation; Reset Stock action (distinct from delete)
+- **Order state machine**: See [Orders & inventory](#orders--inventory) below
+- **Inventory management**: Auto-created on product creation; inline current-inventory updates on list and detail
 - **Display IDs**: TEN-001 (tenants), ORD-1001 (per-tenant orders)
 - **JWT rotation**: Refresh token rotated on every refresh; Redis blacklist for real logout
 
@@ -161,14 +161,43 @@ Brute-force and abuse against login, registration, and invite flows are throttle
 | **`CORS_ORIGINS`** | Comma-separated allowlist. |
 | **Secrets** | DB, Redis, JWT, Resend — via **`.env`** (see **`.env.example`**); do not commit real secrets. |
 
+## Orders & inventory
+
+Orders use four **statuses** (`created`, `pending`, `confirmed`, `cancelled`):
+
+| Status | Meaning |
+|--------|--------|
+| **`pending`** | Placed when **current stock is below the requested quantity** at creation time. No stock reserved. |
+| **`created`** | Placed when **stock was sufficient** at creation time. Still **no deduction** until someone clicks **Confirm**. |
+| **`confirmed`** | User confirmed the order; **stock is reduced** by the requested quantity. |
+| **`cancelled`** | Cancelled before confirmation; **inventory unchanged**. |
+
+**Rules:**
+
+- **Create order** — Never changes inventory. Status is `pending` or `created` only.
+- **Confirm** — Allowed for `pending` and `created`. If current stock ≥ requested quantity, stock is deducted and status becomes **`confirmed`**. If not enough stock, the API returns an error.
+- **Cancel** — Only for `pending` or **`created`**. **Confirmed** orders **cannot** be cancelled (no “Cancel order” in the UI; API returns 409).
+- **Delete** — If the order is **`confirmed`**, its quantity is **added back** to inventory before the row is removed. Unconfirmed orders are deleted without inventory changes.
+
+Existing databases created before this flow should run migrations: legacy rows in status `created` that had already been treated as “fulfilled” are migrated to **`confirmed`** so inventory stays consistent.
+
+## Resetting the database (Docker)
+
+Remove volumes so PostgreSQL and Redis start empty. On the next `docker compose up --build`, **`alembic upgrade head`** runs when the API starts, and if **`SEED_ON_STARTUP=true`**, the seed runs on an empty database.
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
 ## Running Tests
 
 ```bash
 docker compose exec api pytest
 ```
 
+From `backend/` with test extras installed: `pip install -e ".[test]"` then `pytest tests/test_orders.py -v` (order lifecycle tests use mocks and do not require Postgres).
+
 ## API Docs
 
-```
-http://localhost/api/docs
-```
+`http://localhost/api/docs`

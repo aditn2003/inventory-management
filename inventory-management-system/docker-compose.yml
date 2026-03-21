@@ -33,6 +33,11 @@ services:
     build: ./frontend
     expose:
       - "3000"
+    environment:
+      # Windows + Docker: host file events often don't reach Linux inotify — Vite needs polling
+      CHOKIDAR_USEPOLLING: "true"
+      # Browser uses nginx :80; HMR WebSocket must use that port, not internal :3000
+      VITE_HMR_CLIENT_PORT: "80"
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html

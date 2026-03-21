@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,17 +15,46 @@ from app.inventory.service import InventoryService
 
 router = APIRouter()
 
+InventorySortBy = Literal[
+    "product_name",
+    "sku",
+    "cost_per_unit",
+    "current_stock",
+    "reorder_threshold",
+    "created_at",
+]
+InventorySortDir = Literal["asc", "desc"]
+
 
 @router.get("", response_model=InventoryListResponse)
 async def list_inventory(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     q: Optional[str] = Query(None),
+    sort_by: Optional[InventorySortBy] = Query(
+        None,
+        description="When set with sort_dir, sort by this column. Omit both for default (newest inventory first).",
+    ),
+    sort_dir: Optional[InventorySortDir] = Query(
+        None,
+        description="asc or desc; must be used together with sort_by.",
+    ),
+    below_reorder_only: bool = Query(
+        False,
+        description="If true, only rows where current_stock < reorder_threshold (paginated).",
+    ),
     session: AsyncSession = Depends(get_db),
     tenant_id: UUID = Depends(get_tenant_id),
 ) -> InventoryListResponse:
+    if (sort_by is None) != (sort_dir is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="sort_by and sort_dir must both be provided or both omitted.",
+        )
     svc = InventoryService(session)
-    return await svc.list_inventory(tenant_id, page, page_size, q)
+    return await svc.list_inventory(
+        tenant_id, page, page_size, q, sort_by, sort_dir, below_reorder_only
+    )
 
 
 @router.get("/{inventory_id}", response_model=InventoryResponse)

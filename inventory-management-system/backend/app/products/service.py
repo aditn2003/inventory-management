@@ -3,9 +3,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.products.models import Product
-from app.products.repository import ProductRepository
 from app.inventory.models import Inventory
+from app.products.models import Product
+from app.products.repository import ProductRepository, ProductSortBy, ProductSortDir
 
 
 class ProductService:
@@ -17,8 +17,16 @@ class ProductService:
     VALID_STATUSES = ("active", "inactive")
     VALID_UNITS = ("units", "kg", "sheets", "litres")
 
-    async def list_products(self, tenant_id: UUID, page: int, page_size: int, q: Optional[str]) -> dict:
-        products, total = await self.repo.list(tenant_id, page, page_size, q)
+    async def list_products(
+        self,
+        tenant_id: UUID,
+        page: int,
+        page_size: int,
+        q: Optional[str],
+        sort_by: Optional[ProductSortBy] = None,
+        sort_dir: Optional[ProductSortDir] = None,
+    ) -> dict:
+        products, total = await self.repo.list(tenant_id, page, page_size, q, sort_by, sort_dir)
         active = await self.repo.count_by_status(tenant_id, "active")
         inactive = await self.repo.count_by_status(tenant_id, "inactive")
         all_count = await self.repo.count_all(tenant_id)

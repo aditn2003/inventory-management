@@ -3,7 +3,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.inventory.repository import InventoryRepository
+from app.inventory.repository import (
+    InventoryRepository,
+    InventorySortBy,
+    InventorySortDir,
+)
 from app.products.repository import ProductRepository
 
 
@@ -12,8 +16,19 @@ class InventoryService:
         self.session = session
         self.repo = InventoryRepository(session)
 
-    async def list_inventory(self, tenant_id: UUID, page: int, page_size: int, q: Optional[str]) -> dict:
-        items, total = await self.repo.list(tenant_id, page, page_size, q)
+    async def list_inventory(
+        self,
+        tenant_id: UUID,
+        page: int,
+        page_size: int,
+        q: Optional[str],
+        sort_by: Optional[InventorySortBy] = None,
+        sort_dir: Optional[InventorySortDir] = None,
+        below_reorder_only: bool = False,
+    ) -> dict:
+        items, total = await self.repo.list(
+            tenant_id, page, page_size, q, sort_by, sort_dir, below_reorder_only
+        )
         below_reorder = await self.repo.below_reorder_count(tenant_id)
         return {
             "data": items,

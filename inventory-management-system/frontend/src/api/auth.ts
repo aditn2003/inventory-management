@@ -1,5 +1,6 @@
 import apiClient from './client';
-import type { User, LoginRequest, TokenResponse } from '@/types/auth';
+import type { User, LoginRequest } from '@/types/auth';
+import type { Tenant } from '@/types/tenant';
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<{ access_token: string; token_type: string }> => {
@@ -14,6 +15,15 @@ export const authApi = {
 
   me: async (): Promise<User> => {
     const res = await apiClient.get('/auth/me');
+    return res.data;
+  },
+
+  /** Tenants the signed-in user may work in (selector / X-Tenant-Id). Admins see all. */
+  listAccessibleTenants: async (params?: {
+    page?: number;
+    page_size?: number;
+  }): Promise<Tenant[]> => {
+    const res = await apiClient.get('/auth/me/accessible-tenants', { params });
     return res.data;
   },
 

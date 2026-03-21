@@ -36,11 +36,15 @@ export function ProductEditPage() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: { status: 'active', unit: 'units', category: 'Metals' },
   });
+
+  const statusValue = watch('status');
 
   useEffect(() => {
     if (!isNew && id) {
@@ -96,21 +100,30 @@ export function ProductEditPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SKU <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
               <input
                 {...register('sku')}
                 disabled={skuLocked}
+                required={!skuLocked}
+                aria-required={!skuLocked}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 placeholder="ALU-001"
               />
-              {skuLocked && <p className="text-xs text-gray-400 mt-1">SKU cannot be changed.</p>}
+              {skuLocked && <p className="text-xs text-gray-400 mt-1">SKU cannot be changed after creation.</p>}
               {errors.sku && <p className="text-xs text-red-600 mt-1">{errors.sku.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="product-name">
+                Product Name <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
               <input
+                id="product-name"
                 {...register('name')}
+                required
+                aria-required="true"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Aluminium Sheet 2mm"
               />
@@ -118,47 +131,98 @@ export function ProductEditPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="product-category">
+                Category <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
               <select
+                id="product-category"
                 {...register('category')}
+                required
+                aria-required="true"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
+              {errors.category && <p className="text-xs text-red-600 mt-1">{errors.category.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Unit ($)</label>
-              <input
-                {...register('cost_per_unit', { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                min="0.01"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="product-cost">
+                Cost per Unit <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
+                  $
+                </span>
+                <input
+                  id="product-cost"
+                  {...register('cost_per_unit', { valueAsNumber: true })}
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  aria-required="true"
+                  className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               {errors.cost_per_unit && <p className="text-xs text-red-600 mt-1">{errors.cost_per_unit.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Threshold</label>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="product-reorder">
+                Reorder Threshold <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mb-1.5">
+                The inventory level at which a new purchase should be triggered.
+              </p>
               <input
+                id="product-reorder"
                 {...register('reorder_threshold', { valueAsNumber: true })}
                 type="number"
                 min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                aria-required="true"
+                className="w-full max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              {errors.reorder_threshold && <p className="text-xs text-red-600 mt-1">{errors.reorder_threshold.message}</p>}
+              {errors.reorder_threshold && (
+                <p className="text-xs text-red-600 mt-1">{errors.reorder_threshold.message}</p>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                {...register('status')}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <div className="col-span-2">
+              <span className="block text-sm font-medium text-gray-700 mb-2" id="product-status-label">
+                Product Status
+              </span>
+              <div
+                className="inline-flex rounded-lg border border-gray-300 p-0.5 bg-gray-50"
+                role="group"
+                aria-labelledby="product-status-label"
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                <button
+                  type="button"
+                  aria-pressed={statusValue === 'active'}
+                  onClick={() => setValue('status', 'active', { shouldValidate: true, shouldDirty: true })}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    statusValue === 'active'
+                      ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Active
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={statusValue === 'inactive'}
+                  onClick={() => setValue('status', 'inactive', { shouldValidate: true, shouldDirty: true })}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    statusValue === 'inactive'
+                      ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Inactive
+                </button>
+              </div>
             </div>
 
             {isNew && (

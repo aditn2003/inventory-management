@@ -1,8 +1,23 @@
 import apiClient from './client';
 import type { Product, ProductCreateInput, ProductListResponse, ProductUpdateInput } from '@/types/product';
 
+export type ProductListSortBy =
+  | 'sku'
+  | 'name'
+  | 'category'
+  | 'cost_per_unit'
+  | 'current_stock'
+  | 'status'
+  | 'created_at';
+
 export const productsApi = {
-  list: async (params?: { page?: number; page_size?: number; q?: string }): Promise<ProductListResponse> => {
+  list: async (params?: {
+    page?: number;
+    page_size?: number;
+    q?: string;
+    sort_by?: ProductListSortBy;
+    sort_dir?: 'asc' | 'desc';
+  }): Promise<ProductListResponse> => {
     const res = await apiClient.get('/products', { params });
     return res.data;
   },
