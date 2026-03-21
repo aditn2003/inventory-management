@@ -64,11 +64,17 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-async def create_user(session: AsyncSession, email: str, password: str = "test123!", role: str = "user"):
+async def create_user(
+    session: AsyncSession,
+    email: str,
+    password: str = "test123!",
+    role: str = "user",
+    name: str = "Test User",
+):
     from passlib.context import CryptContext
     from app.auth.models import User
     ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    user = User(email=email, password_hash=ctx.hash(password), role=role)
+    user = User(email=email, name=name, password_hash=ctx.hash(password), role=role)
     session.add(user)
     await session.flush()
     return user

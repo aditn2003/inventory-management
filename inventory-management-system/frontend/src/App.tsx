@@ -8,6 +8,7 @@ import { authApi } from '@/api/auth';
 import { Layout } from '@/components/Layout/Layout';
 import { AuthGuard } from '@/components/AuthGuard';
 import { LoginPage } from '@/pages/LoginPage';
+import { RegisterInvitePage } from '@/pages/RegisterInvitePage';
 
 // Tenant pages
 import { TenantListPage } from '@/pages/tenants/TenantListPage';
@@ -31,6 +32,7 @@ import { OrderEditPage } from '@/pages/orders/OrderEditPage';
 
 // User pages (admin only)
 import { UserListPage } from '@/pages/users/UserListPage';
+import { UserInvitePage } from '@/pages/users/UserInvitePage';
 import { UserDetailPage } from '@/pages/users/UserDetailPage';
 
 // Validates the stored access token with the server on startup.
@@ -76,6 +78,7 @@ function AppRoutes() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register/invite" element={<RegisterInvitePage />} />
 
         {/* Protected routes */}
         <Route element={<AuthGuard />}>
@@ -108,6 +111,7 @@ function AppRoutes() {
             {/* Users — admin only */}
             <Route element={<AuthGuard requiredRole="admin" />}>
               <Route path="users" element={<UserListPage />} />
+              <Route path="users/new" element={<UserInvitePage />} />
               <Route path="users/:id" element={<UserDetailPage />} />
             </Route>
           </Route>

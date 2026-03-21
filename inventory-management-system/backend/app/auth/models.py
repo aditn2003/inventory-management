@@ -24,6 +24,7 @@ class User(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()"))
     email = Column(String(255), unique=True, nullable=False)
+    name = Column(String(255), nullable=False, server_default=text("''"))
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, server_default="user")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -34,6 +35,23 @@ class User(Base):
     )
 
     tenant_assignments = relationship("UserTenantRole", back_populates="user", cascade="all, delete-orphan")
+    invites_sent = relationship("UserInvite", back_populates="invited_by")
+
+
+class UserInvite(Base):
+    """Pending registration link sent by admin (email contains secret token)."""
+
+    __tablename__ = "user_invites"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()"))
+    email = Column(String(255), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    invited_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    consumed_at = Column(DateTime(timezone=True), nullable=True)
+
+    invited_by = relationship("User", back_populates="invites_sent")
 
 
 class UserTenantRole(Base):

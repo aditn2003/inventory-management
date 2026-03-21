@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     seed_on_startup: bool = False
     cors_origins: str = "http://localhost"
     environment: Literal["development", "production", "test"] = "development"
+    # Public URL of the SPA (for invite links in emails), no trailing slash
+    public_app_url: str = "http://localhost"
+    # Resend (https://resend.com) — invitation emails
+    resend_api_key: str = ""
+    resend_from_email: str = "IMS <onboarding@resend.dev>"
+    invite_expire_hours: int = 168  # 7 days
 
     @property
     def cors_origins_list(self) -> list[str]:

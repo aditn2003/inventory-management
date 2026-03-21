@@ -20,10 +20,24 @@ The seed script runs automatically on first startup.
 
 ## Default Credentials
 
-| Role  | Email            | Password   |
-|-------|------------------|------------|
-| Admin | admin@ims.com    | admin123!  |
-| User  | user@ims.com     | user123!   |
+| Role  | Email (login only) | Display name           | Password   |
+|-------|--------------------|-------------------------|------------|
+| Admin | admin@ims.com      | System Administrator    | admin123!  |
+| User  | user@ims.com       | Demo User               | user123!   |
+
+Emails are **not** shown in the UI after login; the header and user lists use **display names** only.
+
+After pulling changes, run **`alembic upgrade head`** (or recreate DB) so the `users.name` column exists.
+
+### Inviting users (admin)
+
+Admins use **Users → Invite user**: enter an email. The API creates a **user invite** and sends a **Resend** email with a link to `/register/invite?token=…` where the person sets their **name** and **password**. They are created with the **user** role.
+
+Configure in `.env`:
+
+- **`RESEND_API_KEY`** — from [Resend](https://resend.com); **required** — invitations fail with **503** if unset.
+- **`RESEND_FROM_EMAIL`** — verified sender (e.g. `IMS <onboarding@resend.dev>` for quick tests).
+- **`PUBLIC_APP_URL`** — where the SPA is reachable (e.g. `http://localhost` behind nginx); used in the email link.
 
 ## Architecture
 
@@ -63,6 +77,10 @@ inventory-management-system/
 | Proxy       | Nginx                             |
 | Containers  | Docker Compose                    |
 
+## Assumptions
+
+- **Tenant list default sort**: With no column sort active, the tenant table is ordered with **active** tenants first, then **inactive**; within each status group, rows are sorted by **created_at descending** (newest first). Column headers cycle sort: **asc → desc → default**; only one column sort applies at a time. **Name** sorting is **case-insensitive** (A–Z by letter, ignoring capitalization).
+
 ## Key Features
 
 - **Multi-tenancy**: Row-Level Security enforced at DB level; tenant selected via header dropdown
@@ -71,6 +89,77 @@ inventory-management-system/
 - **Inventory management**: Auto-created on product creation; Reset Stock action (distinct from delete)
 - **Display IDs**: TEN-001 (tenants), ORD-1001 (per-tenant orders)
 - **JWT rotation**: Refresh token rotated on every refresh; Redis blacklist for real logout
+
+## Security
+
+Defense-in-depth controls in this stack. **Configurable** items show **defaults** from code / `.env.example`.
+
+### Nginx (edge proxy)
+
+| Control | Detail |
+|--------|--------|
+| **Rate limiting** | **`auth`** zone: **5 requests/minute** per client IP; **`api`** zone: **600 requests/minute** per IP (`nginx/nginx.conf`). |
+| **Auth routes** | **`/api/v1/auth/login`**, **`register`**, **`register-invite`**: `limit_req zone=auth burst=5 nodelay`. |
+| **Invite preview** | **`/api/v1/auth/invite/`**: `auth` zone with **`burst=10`**. |
+| **General API** | **`/api/`**: `limit_req zone=api burst=20 nodelay`. |
+| **HTTP headers** | **`X-Content-Type-Options: nosniff`**, **`X-Frame-Options: DENY`**, **`X-XSS-Protection: 1; mode=block`**. |
+| **Body size** | **`client_max_body_size 1m`**. |
+| **Forwarding** | **`X-Real-IP`**, **`X-Forwarded-For`**, **`X-Forwarded-Proto`** to the API. |
+
+Brute-force and abuse against login, registration, and invite flows are throttled at the edge before FastAPI.
+
+### Invitation links (token handling & expiry)
+
+| Control | Detail |
+|--------|--------|
+| **No raw token in DB** | Only **SHA-256** of the token is stored; the **raw token** is only in the **email link** and in transit. |
+| **Time-limited** | **`expires_at`** enforced in code. TTL = **`INVITE_EXPIRE_HOURS`** (default **`168`** = 7 days). Use **`INVITE_EXPIRE_HOURS=24`** for 24-hour links. |
+| **Single use** | **`register-invite`** sets **`consumed_at`**; token cannot be reused. |
+| **Invalid / expired** | No matching valid invite → **404** (or equivalent) for bad links. |
+| **Re-invite** | Pending invites for the same email are **revoked** before a new one is created. |
+| **API validation** | Preview: **`min_length`** on `token` query; register-invite: **min token length** in Pydantic. |
+| **Verification** | **`GET /auth/invite/preview`** and **`POST /auth/register-invite`** both **hash the token** and run **expiry / consumed** checks before returning data or creating a user. |
+
+### Authentication & session (backend)
+
+| Control | Detail |
+|--------|--------|
+| **Passwords** | **bcrypt** (Passlib), **`bcrypt__rounds=12`**. |
+| **JWT** | **HS256**; secret from **`JWT_SECRET`**. |
+| **Access / refresh** | Defaults: **`ACCESS_TOKEN_EXPIRE_MINUTES=15`**, **`REFRESH_TOKEN_EXPIRE_DAYS=7`**. |
+| **Refresh rotation** | Old refresh token **blacklisted** when issuing a new pair. |
+| **Logout** | **Redis** blacklist (`blacklist:` prefix) so logged-out / rotated tokens are not reusable. |
+| **Login errors** | Generic **“Invalid email or password”** (no user enumeration). |
+
+### Privacy (email vs display name)
+
+| Control | Detail |
+|--------|--------|
+| **`/me` / `UserResponse`** | **Email omitted**; UI uses **display name**. |
+| **Admin user list** | **Name**, role, tenant access — **not** login email. |
+| **Invite preview** | Invited **email** shown only to callers who have the **secret token** (UX for the registrant). |
+
+### Multi-tenancy & authorization
+
+| Control | Detail |
+|--------|--------|
+| **`X-Tenant-Id`** | Required for tenant-scoped APIs; validated as **UUID**. |
+| **Tenant allow-list** | Users with **assignment rows** may only use those tenants; **no rows** = all tenants (`auth/dependencies.py`). |
+| **PostgreSQL RLS** | Tenant isolation at the database layer. |
+| **Admin APIs** | User management & invitations require **`require_admin`**. |
+
+### Invite email delivery
+
+| Control | Detail |
+|--------|--------|
+| **`RESEND_API_KEY`** | **Required** — missing key → **503** on invite; **no** invite URL returned in JSON as a fallback. |
+
+### CORS & secrets
+
+| Control | Detail |
+|--------|--------|
+| **`CORS_ORIGINS`** | Comma-separated allowlist. |
+| **Secrets** | DB, Redis, JWT, Resend — via **`.env`** (see **`.env.example`**); do not commit real secrets. |
 
 ## Running Tests
 

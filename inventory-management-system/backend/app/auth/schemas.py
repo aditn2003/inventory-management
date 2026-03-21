@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
@@ -13,6 +12,7 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    name: str = Field(min_length=1, max_length=255)
 
 
 class TokenResponse(BaseModel):
@@ -21,8 +21,10 @@ class TokenResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
+    """Session user profile — email omitted for display/privacy; use name in UI."""
+
     id: UUID
-    email: str
+    name: str
     role: str
     created_at: datetime
 
@@ -31,3 +33,15 @@ class UserResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class InvitePreviewResponse(BaseModel):
+    """Email tied to the invitation (for form display)."""
+
+    email: str
+
+
+class RegisterWithInviteRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=500)
+    name: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=8, max_length=128)

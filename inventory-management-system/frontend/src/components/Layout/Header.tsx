@@ -47,7 +47,7 @@ export function Header() {
           <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
             <User size={14} className="text-blue-700" />
           </div>
-          <span className="font-medium">{user?.email}</span>
+          <span className="font-medium">{user?.name || 'User'}</span>
           <span className="text-xs text-gray-400 capitalize">({user?.role})</span>
           <CaretDown size={14} className="text-gray-400" />
         </button>

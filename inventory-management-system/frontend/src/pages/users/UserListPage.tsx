@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UsersThree } from '@phosphor-icons/react';
+import { Plus, UsersThree } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useUsers } from '@/hooks/useUsers';
 import { usersApi } from '@/api/users';
@@ -20,7 +20,7 @@ export function UserListPage() {
     if (!deleteTarget) return;
     try {
       await usersApi.delete(deleteTarget.id);
-      toast.success(`User "${deleteTarget.email}" deleted.`);
+      toast.success(`User "${deleteTarget.name}" deleted.`);
       refetch();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -30,10 +30,10 @@ export function UserListPage() {
   };
 
   const columns = [
-    { key: 'email', header: 'Email' },
+    { key: 'name', header: 'Name' },
     { key: 'role', header: 'Role', render: (u: UserListItem) => <span className="capitalize">{u.role}</span> },
-    { key: 'assigned_tenant_count', header: 'Tenant Access', render: (u: UserListItem) =>
-      u.assigned_tenant_count === 0 ? 'All tenants' : `${u.assigned_tenant_count} assigned` },
+    { key: 'assigned_tenant_count', header: 'Tenant access', render: (u: UserListItem) =>
+      u.assigned_tenant_count === 0 ? 'All tenants' : `${u.assigned_tenant_count} only` },
     { key: 'created_at', header: 'Joined', render: (u: UserListItem) => new Date(u.created_at).toLocaleDateString() },
     {
       key: 'actions',
@@ -54,7 +54,17 @@ export function UserListPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
+        <button
+          type="button"
+          onClick={() => navigate('/users/new')}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Plus size={16} />
+          Invite user
+        </button>
+      </div>
 
       <DataTable
         columns={columns}
@@ -72,7 +82,7 @@ export function UserListPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete User"
-        message={`Delete user "${deleteTarget?.email}"? This action cannot be undone.`}
+        message={`Delete user "${deleteTarget?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}

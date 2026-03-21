@@ -5,6 +5,7 @@ from uuid import UUID
 import redis.asyncio as aioredis
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
@@ -83,14 +84,42 @@ class AuthService:
 
     # ── Auth operations ────────────────────────────────────────────────────
 
-    async def register(self, email: str, password: str) -> User:
+    async def register(self, email: str, password: str, name: str) -> User:
         existing = await self.repo.get_by_email(email)
         if existing:
             raise ValueError("Email already registered.")
         password_hash = self.hash_password(password)
-        user = await self.repo.create(email=email, password_hash=password_hash)
+        user = await self.repo.create(
+            email=email, password_hash=password_hash, name=name.strip()
+        )
         await self.session.commit()
         await self.session.refresh(user)
+        return user
+
+    async def register_with_invite(self, token: str, name: str, password: str) -> User:
+        from app.auth.invite_repository import UserInviteRepository, hash_invite_token
+
+        th = hash_invite_token(token)
+        inv_repo = UserInviteRepository(self.session)
+        inv = await inv_repo.get_valid_by_token_hash(th)
+        if not inv:
+            raise ValueError("Invalid or expired invitation.")
+        if await self.repo.get_by_email(inv.email):
+            raise ValueError("Email already registered.")
+        password_hash = self.hash_password(password)
+        try:
+            user = await self.repo.create(
+                email=inv.email,
+                password_hash=password_hash,
+                name=name.strip(),
+                role="user",
+            )
+            await inv_repo.consume(inv)
+            await self.session.commit()
+            await self.session.refresh(user)
+        except IntegrityError:
+            await self.session.rollback()
+            raise ValueError("Could not complete registration.")
         return user
 
     async def login(self, email: str, password: str) -> tuple[str, str]:

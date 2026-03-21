@@ -13,16 +13,20 @@ async def test_health(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_register(client: AsyncClient):
-    response = await client.post("/api/v1/auth/register", json={"email": "newuser@test.com", "password": "pass123!"})
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={"email": "newuser@test.com", "password": "pass123!", "name": "New User"},
+    )
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == "newuser@test.com"
+    assert data["name"] == "New User"
     assert data["role"] == "user"
+    assert "email" not in data
 
 
 @pytest.mark.asyncio
 async def test_register_duplicate(client: AsyncClient):
-    payload = {"email": "dup@test.com", "password": "pass123!"}
+    payload = {"email": "dup@test.com", "password": "pass123!", "name": "Dup User"}
     await client.post("/api/v1/auth/register", json=payload)
     response = await client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 409

@@ -1,13 +1,16 @@
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import UserTenantRole
 from app.orders.models import Order
 from app.products.models import Product
 from app.tenants.models import Tenant
+
+TenantSortBy = Literal["display_id", "name", "status", "created_at"]
+TenantSortDir = Literal["asc", "desc"]
 
 
 class TenantRepository:
@@ -24,12 +27,33 @@ class TenantRepository:
         )
         return result.scalar_one()
 
+    def _default_order(self):
+        """Active tenants first, then by created_at descending (newest first)."""
+        status_rank = case((Tenant.status == "active", 0), else_=1)
+        return status_rank.asc(), Tenant.created_at.desc()
+
+    def _order_by_clauses(self, sort_by: TenantSortBy, sort_dir: TenantSortDir):
+        # Names: case-insensitive A→Z (LOWER); tie-break on stored name for stability.
+        if sort_by == "name":
+            ln = func.lower(Tenant.name)
+            if sort_dir == "asc":
+                return (ln.asc(), Tenant.name.asc())
+            return (ln.desc(), Tenant.name.desc())
+        col = {
+            "display_id": Tenant.display_id,
+            "status": Tenant.status,
+            "created_at": Tenant.created_at,
+        }[sort_by]
+        return (col.asc(),) if sort_dir == "asc" else (col.desc(),)
+
     async def list(
         self,
         tenant_ids: Optional[list[UUID]],
         page: int,
         page_size: int,
         q: Optional[str],
+        sort_by: Optional[TenantSortBy] = None,
+        sort_dir: Optional[TenantSortDir] = None,
     ) -> tuple[list[Tenant], int]:
         query = select(Tenant)
         if tenant_ids is not None:
@@ -42,7 +66,11 @@ class TenantRepository:
         )
         total = count_result.scalar_one()
 
-        query = query.order_by(Tenant.name).offset((page - 1) * page_size).limit(page_size)
+        if sort_by and sort_dir:
+            query = query.order_by(*self._order_by_clauses(sort_by, sort_dir))
+        else:
+            query = query.order_by(*self._default_order())
+        query = query.offset((page - 1) * page_size).limit(page_size)
         result = await self.session.execute(query)
         return result.scalars().all(), total
 

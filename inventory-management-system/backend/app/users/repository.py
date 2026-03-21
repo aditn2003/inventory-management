@@ -32,7 +32,7 @@ class UserManagementRepository:
             assigned_count = count_res.scalar_one()
             user_items.append({
                 "id": user.id,
-                "email": user.email,
+                "name": (user.name or "").strip(),
                 "role": user.role,
                 "assigned_tenant_count": assigned_count,
                 "created_at": user.created_at,
@@ -61,21 +61,12 @@ class UserManagementRepository:
         await self.session.delete(user)
         await self.session.flush()
 
-    async def get_assignment(self, user_id: UUID, tenant_id: UUID) -> Optional[UserTenantRole]:
-        result = await self.session.execute(
-            select(UserTenantRole).where(
-                UserTenantRole.user_id == user_id,
-                UserTenantRole.tenant_id == tenant_id,
-            )
-        )
-        return result.scalar_one_or_none()
-
     async def create_assignment(self, user_id: UUID, tenant_id: UUID) -> UserTenantRole:
         assignment = UserTenantRole(user_id=user_id, tenant_id=tenant_id)
         self.session.add(assignment)
         await self.session.flush()
         return assignment
 
-    async def delete_assignment(self, assignment: UserTenantRole) -> None:
-        await self.session.delete(assignment)
+    async def delete_all_assignments_for_user(self, user_id: UUID) -> None:
+        await self.session.execute(delete(UserTenantRole).where(UserTenantRole.user_id == user_id))
         await self.session.flush()

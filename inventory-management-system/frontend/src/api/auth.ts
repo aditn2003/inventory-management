@@ -7,13 +7,27 @@ export const authApi = {
     return res.data;
   },
 
-  register: async (email: string, password: string): Promise<User> => {
-    const res = await apiClient.post('/auth/register', { email, password });
+  register: async (email: string, password: string, name: string): Promise<User> => {
+    const res = await apiClient.post('/auth/register', { email, password, name });
     return res.data;
   },
 
   me: async (): Promise<User> => {
     const res = await apiClient.get('/auth/me');
+    return res.data;
+  },
+
+  previewInvite: async (token: string): Promise<{ email: string }> => {
+    const res = await apiClient.get('/auth/invite/preview', { params: { token } });
+    return res.data;
+  },
+
+  registerWithInvite: async (data: {
+    token: string;
+    name: string;
+    password: string;
+  }): Promise<User> => {
+    const res = await apiClient.post('/auth/register-invite', data);
     return res.data;
   },
 

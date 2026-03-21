@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usersApi } from '@/api/users';
 import type { UserListResponse, UserDetail } from '@/types/user';
 
@@ -29,14 +29,18 @@ export function useUserDetail(userId: string | undefined) {
   const [data, setData] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Avoid full-page skeleton + scroll jump on refetch after first load for this user. */
+  const lastFetchedUserIdRef = useRef<string | undefined>(undefined);
 
   const fetch = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
     setError(null);
+    const isInitialLoadForUser = lastFetchedUserIdRef.current !== userId;
+    if (isInitialLoadForUser) setLoading(true);
     try {
       const result = await usersApi.get(userId);
       setData(result);
+      lastFetchedUserIdRef.current = userId;
     } catch {
       setError('Failed to load user.');
     } finally {
@@ -44,7 +48,15 @@ export function useUserDetail(userId: string | undefined) {
     }
   }, [userId]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => {
+    lastFetchedUserIdRef.current = undefined;
+    setData(null);
+    setLoading(true);
+  }, [userId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   return { data, loading, error, refetch: fetch };
 }

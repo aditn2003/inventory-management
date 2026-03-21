@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Buildings } from '@phosphor-icons/react';
+import { Plus, Buildings, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useTenants } from '@/hooks/useTenants';
 import { tenantsApi } from '@/api/tenants';
@@ -13,13 +13,49 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { getErrorMessage } from '@/utils/apiError';
 import type { Tenant } from '@/types/tenant';
+import {
+  TenantSortHeader,
+  type TenantSortField,
+  type TenantSortState,
+} from '@/components/tenants/TenantSortHeader';
+
+const PAGE_SIZE = 10;
 
 export function TenantListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
-  const { data, loading, error, refetch } = useTenants({ page_size: 50, q: search || undefined });
+  const [sort, setSort] = useState<TenantSortState>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sort?.field, sort?.dir]);
+
+  const handleSortClick = useCallback((field: TenantSortField) => {
+    setSort((prev) => {
+      if (!prev || prev.field !== field) return { field, dir: 'asc' };
+      if (prev.dir === 'asc') return { field, dir: 'desc' };
+      return null;
+    });
+  }, []);
+
+  const { data, loading, error, refetch } = useTenants({
+    page,
+    page_size: PAGE_SIZE,
+    q: search || undefined,
+    ...(sort ? { sort_by: sort.field, sort_dir: sort.dir } : {}),
+  });
+
+  const total = data?.meta.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  useEffect(() => {
+    if (loading || !data?.meta) return;
+    const maxPage = Math.max(1, Math.ceil(data.meta.total / data.meta.page_size));
+    if (page > maxPage) setPage(maxPage);
+  }, [data?.meta?.total, data?.meta?.page_size, loading, page]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -35,14 +71,25 @@ export function TenantListPage() {
   };
 
   const columns = [
-    { key: 'display_id', header: 'ID', className: 'w-28' },
-    { key: 'name', header: 'Name' },
+    {
+      key: 'display_id',
+      header: <TenantSortHeader label="ID" field="display_id" sort={sort} onSortClick={handleSortClick} />,
+      className: 'w-28',
+    },
+    {
+      key: 'name',
+      header: <TenantSortHeader label="Name" field="name" sort={sort} onSortClick={handleSortClick} />,
+    },
     {
       key: 'status',
-      header: 'Status',
+      header: <TenantSortHeader label="Status" field="status" sort={sort} onSortClick={handleSortClick} />,
       render: (t: Tenant) => <StatusBadge status={t.status} />,
     },
-    { key: 'created_at', header: 'Created', render: (t: Tenant) => new Date(t.created_at).toLocaleDateString() },
+    {
+      key: 'created_at',
+      header: <TenantSortHeader label="Created" field="created_at" sort={sort} onSortClick={handleSortClick} />,
+      render: (t: Tenant) => new Date(t.created_at).toLocaleDateString(),
+    },
     {
       key: 'actions',
       header: '',
@@ -113,6 +160,41 @@ export function TenantListPage() {
           />
         }
       />
+
+      {!loading && total > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+          <p className="text-sm text-gray-600">
+            Showing{' '}
+            <span className="font-medium text-gray-900">
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
+            </span>{' '}
+            of <span className="font-medium text-gray-900">{total}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+            >
+              <CaretLeft size={16} />
+              Previous
+            </button>
+            <span className="text-sm text-gray-600 px-2 tabular-nums">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+            >
+              Next
+              <CaretRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!deleteTarget}
