@@ -29,10 +29,10 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 bg-white border-r border-gray-200 flex flex-col h-full">
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-100 flex items-center gap-2">
-        <Cube size={24} weight="fill" className="text-blue-600" />
-        <span className="font-semibold text-gray-900 text-base">IMS</span>
+      {/* Logo — same height as Header (h-14) so top bar aligns across sidebar + main */}
+      <div className="h-14 shrink-0 px-5 border-b border-gray-200 flex items-center gap-2">
+        <Cube size={22} weight="fill" className="text-blue-600 shrink-0" />
+        <span className="font-semibold text-gray-900 text-base leading-none">IMS</span>
       </div>
 
       {/* Navigation */}

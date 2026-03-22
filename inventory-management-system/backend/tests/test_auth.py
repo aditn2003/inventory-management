@@ -39,6 +39,13 @@ async def test_login_invalid_credentials(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_google_oauth_status_when_unconfigured(client: AsyncClient):
+    response = await client.get("/api/v1/auth/google/status")
+    assert response.status_code == 200
+    assert response.json() == {"enabled": False}
+
+
+@pytest.mark.asyncio
 async def test_me_without_token(client: AsyncClient):
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 403  # No auth header

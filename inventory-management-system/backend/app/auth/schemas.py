@@ -35,6 +35,18 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class GoogleOAuthCompleteRequest(BaseModel):
+    """One-time code issued after Google redirect (stored in Redis), not Google's authorization code."""
+
+    code: str = Field(min_length=10, max_length=256)
+
+
+class GoogleOAuthTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    refresh_token: str
+
+
 class InvitePreviewResponse(BaseModel):
     """Email tied to the invitation (for form display)."""
 
