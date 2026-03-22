@@ -53,14 +53,14 @@ After pulling schema changes, ensure migrations apply: **`alembic upgrade head`*
 
 ## What the app does
 
-| Area | Capabilities |
-| ---- | ------------ |
-| **Tenants** | Admin CRUD; each tenant has a display id (e.g. `TEN-001`), name, active/inactive status. |
-| **Products** | SKU, name, category, unit, cost, reorder threshold, active/inactive; **inventory row auto-created** with product. Categories/units support **creatable combobox** on edit (add new values from UI when allowed). |
-| **Inventory** | Per-product stock; list/detail; **quick update** of current quantity; attention summary when below reorder. |
-| **Orders** | Create with product + quantity; statuses `created` \| `pending` \| `confirmed` \| `cancelled`; **confirm** deducts stock; **cancel** before confirm; **delete** restores stock if was confirmed. Filters, search, sort, pagination on lists. |
-| **Users (admin)** | List users, invite by email (Resend), change role, **tenant access** checkboxes, delete user. |
-| **Auth** | Email/password login, JWT access + refresh, logout (Redis blacklist), optional **Google OAuth**, invite registration. |
+| Area              | Capabilities                                                                                                                                                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tenants**       | Admin CRUD; each tenant has a display id (e.g. `TEN-001`), name, active/inactive status.                                                                                                                                                     |
+| **Products**      | SKU, name, category, unit, cost, reorder threshold, active/inactive; **inventory row auto-created** with product. Categories/units support **creatable combobox** on edit (add new values from UI when allowed).                             |
+| **Inventory**     | Per-product stock; list/detail; **quick update** of current quantity; attention summary when below reorder.                                                                                                                                  |
+| **Orders**        | Create with product + quantity; statuses `created` \| `pending` \| `confirmed` \| `cancelled`; **confirm** deducts stock; **cancel** before confirm; **delete** restores stock if was confirmed. Filters, search, sort, pagination on lists. |
+| **Users (admin)** | List users, invite by email (Resend), change role, **tenant access** checkboxes, delete user.                                                                                                                                                |
+| **Auth**          | Email/password login, JWT access + refresh, logout (Redis blacklist), optional **Google OAuth**, invite registration.                                                                                                                        |
 
 ---
 
@@ -121,20 +121,20 @@ inventory-management-system/
 
 ## Technology stack
 
-| Layer | Technology |
-| ----- | ---------- |
-| Frontend | React 18, Vite 5, TypeScript, Tailwind CSS |
-| UI | `@phosphor-icons/react`, `sonner` (toasts), `recharts` (dashboard charts) |
-| State | Redux Toolkit (`auth`; tenant context via hooks + `localStorage`) |
-| Forms | `react-hook-form` + `zod` + `@hookform/resolvers` |
-| HTTP | Axios (JWT + `X-Tenant-Id` interceptors) |
-| Backend | Python 3.12, FastAPI |
-| ORM | SQLAlchemy 2.0 (async) |
-| DB | PostgreSQL 16 (RLS for tenant isolation) |
-| Redis | **Not used for application caching** — token blacklist, OAuth state, login rate limiting |
-| Auth | JWT (access + refresh), optional Google OAuth |
-| Proxy | Nginx |
-| Containers | Docker Compose |
+| Layer      | Technology                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| Frontend   | React 18, Vite 5, TypeScript, Tailwind CSS                                               |
+| UI         | `@phosphor-icons/react`, `sonner` (toasts), `recharts` (dashboard charts)                |
+| State      | Redux Toolkit (`auth`; tenant context via hooks + `localStorage`)                        |
+| Forms      | `react-hook-form` + `zod` + `@hookform/resolvers`                                        |
+| HTTP       | Axios (JWT + `X-Tenant-Id` interceptors)                                                 |
+| Backend    | Python 3.12, FastAPI                                                                     |
+| ORM        | SQLAlchemy 2.0 (async)                                                                   |
+| DB         | PostgreSQL 16 (RLS for tenant isolation)                                                 |
+| Redis      | **Not used for application caching** — token blacklist, OAuth state, login rate limiting |
+| Auth       | JWT (access + refresh), optional Google OAuth                                            |
+| Proxy      | Nginx                                                                                    |
+| Containers | Docker Compose                                                                           |
 
 ---
 
@@ -142,14 +142,14 @@ inventory-management-system/
 
 ### Routing (authenticated)
 
-| Path | Role | Description |
-| ---- | ---- | ----------- |
-| `/` | All | Dashboard (tenant-scoped KPIs, charts, recent orders when tenant selected) |
-| `/tenants`, `/tenants/new`, `/tenants/:id`, `/tenants/:id/edit` | **Admin** | Tenants |
-| `/products`, `/products/new`, `/products/:id`, `/products/:id/edit` | All | Products |
-| `/inventory`, `/inventory/:id` | All | Inventory |
-| `/orders`, `/orders/new`, `/orders/:id`, `/orders/:id/edit` | All | Orders |
-| `/users`, `/users/new`, `/users/:id` | **Admin** | Users & invites |
+| Path                                                                | Role      | Description                                                                |
+| ------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------- |
+| `/`                                                                 | All       | Dashboard (tenant-scoped KPIs, charts, recent orders when tenant selected) |
+| `/tenants`, `/tenants/new`, `/tenants/:id`, `/tenants/:id/edit`     | **Admin** | Tenants                                                                    |
+| `/products`, `/products/new`, `/products/:id`, `/products/:id/edit` | All       | Products                                                                   |
+| `/inventory`, `/inventory/:id`                                      | All       | Inventory                                                                  |
+| `/orders`, `/orders/new`, `/orders/:id`, `/orders/:id/edit`         | All       | Orders                                                                     |
+| `/users`, `/users/new`, `/users/:id`                                | **Admin** | Users & invites                                                            |
 
 Public routes: `/login`, `/auth/oauth-callback`, `/register/invite`.
 
@@ -191,79 +191,79 @@ Base path (behind Nginx): **`/api/v1`**. All tenant-scoped routes require **`Aut
 
 ### Auth — `/api/v1/auth`
 
-| Method | Path | Auth | Description |
-| ------ | ---- | ---- | ----------- |
-| GET | `/google/status` | No | Returns whether Google OAuth is configured. |
-| GET | `/google/start` | No | Starts Google OAuth (optional `invite_token`). |
-| GET | `/google/callback` | No | OAuth redirect handler. |
-| POST | `/google/complete` | No | Exchanges code for app tokens (body). |
-| POST | `/register` | No | Register new user (open registration if enabled by app policy). |
-| GET | `/invite/preview` | No | Preview invite by `token` query. |
-| POST | `/register-invite` | No | Complete registration with invite token. |
-| POST | `/login` | No | Login; returns tokens + user. |
-| POST | `/refresh` | No | Refresh access token (rotation). |
-| POST | `/logout` | Yes | Logout; blacklist refresh token. |
-| GET | `/me` | Yes | Current user (no email in response for privacy). |
-| GET | `/me/accessible-tenants` | Yes | Tenants the user may access. |
+| Method | Path                     | Auth | Description                                                     |
+| ------ | ------------------------ | ---- | --------------------------------------------------------------- |
+| GET    | `/google/status`         | No   | Returns whether Google OAuth is configured.                     |
+| GET    | `/google/start`          | No   | Starts Google OAuth (optional `invite_token`).                  |
+| GET    | `/google/callback`       | No   | OAuth redirect handler.                                         |
+| POST   | `/google/complete`       | No   | Exchanges code for app tokens (body).                           |
+| POST   | `/register`              | No   | Register new user (open registration if enabled by app policy). |
+| GET    | `/invite/preview`        | No   | Preview invite by `token` query.                                |
+| POST   | `/register-invite`       | No   | Complete registration with invite token.                        |
+| POST   | `/login`                 | No   | Login; returns tokens + user.                                   |
+| POST   | `/refresh`               | No   | Refresh access token (rotation).                                |
+| POST   | `/logout`                | Yes  | Logout; blacklist refresh token.                                |
+| GET    | `/me`                    | Yes  | Current user (no email in response for privacy).                |
+| GET    | `/me/accessible-tenants` | Yes  | Tenants the user may access.                                    |
 
 ### Tenants — `/api/v1/tenants` (typically **admin**)
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `` | List tenants (pagination, sort, search). |
-| POST | `` | Create tenant. |
-| GET | `/{tenant_id}` | Get tenant. |
-| PUT | `/{tenant_id}` | Update tenant. |
-| DELETE | `/{tenant_id}` | Delete tenant. |
+| Method | Path           | Description                              |
+| ------ | -------------- | ---------------------------------------- |
+| GET    | ``             | List tenants (pagination, sort, search). |
+| POST   | ``             | Create tenant.                           |
+| GET    | `/{tenant_id}` | Get tenant.                              |
+| PUT    | `/{tenant_id}` | Update tenant.                           |
+| DELETE | `/{tenant_id}` | Delete tenant.                           |
 
 ### Products — `/api/v1/products`
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `` | List products (`X-Tenant-Id`). |
-| POST | `` | Create product (+ inventory). |
-| GET | `/{product_id}` | Get product. |
-| PUT | `/{product_id}` | Update product. |
-| DELETE | `/{product_id}` | Delete product. |
+| Method | Path            | Description                    |
+| ------ | --------------- | ------------------------------ |
+| GET    | ``              | List products (`X-Tenant-Id`). |
+| POST   | ``              | Create product (+ inventory).  |
+| GET    | `/{product_id}` | Get product.                   |
+| PUT    | `/{product_id}` | Update product.                |
+| DELETE | `/{product_id}` | Delete product.                |
 
 ### Inventory — `/api/v1/inventory`
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `` | List inventory rows. |
-| GET | `/{inventory_id}` | Get one row. |
-| PATCH | `/{inventory_id}` | Update quantity (and related fields per schema). |
-| DELETE | `/{inventory_id}` | Delete inventory row. |
+| Method | Path              | Description                                      |
+| ------ | ----------------- | ------------------------------------------------ |
+| GET    | ``                | List inventory rows.                             |
+| GET    | `/{inventory_id}` | Get one row.                                     |
+| PATCH  | `/{inventory_id}` | Update quantity (and related fields per schema). |
+| DELETE | `/{inventory_id}` | Delete inventory row.                            |
 
 ### Orders — `/api/v1/orders`
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `` | List orders; query params: `page`, `page_size`, `q`, `sort_by`, `sort_dir`, `status`. Response includes **`summary`** counts by status. |
-| POST | `` | Create order (body: product_id, requested_qty, notes). |
-| GET | `/{order_id}` | Get order with product + inventory. |
-| PUT | `/{order_id}` | Update unconfirmed order (qty/notes per rules). |
-| DELETE | `/{order_id}` | Delete order (restores stock if was confirmed). |
-| POST | `/{order_id}/confirm` | Confirm order (deducts stock). |
-| POST | `/{order_id}/cancel` | Cancel if pending/created. |
+| Method | Path                  | Description                                                                                                                             |
+| ------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | ``                    | List orders; query params: `page`, `page_size`, `q`, `sort_by`, `sort_dir`, `status`. Response includes **`summary`** counts by status. |
+| POST   | ``                    | Create order (body: product_id, requested_qty, notes).                                                                                  |
+| GET    | `/{order_id}`         | Get order with product + inventory.                                                                                                     |
+| PUT    | `/{order_id}`         | Update unconfirmed order (qty/notes per rules).                                                                                         |
+| DELETE | `/{order_id}`         | Delete order (restores stock if was confirmed).                                                                                         |
+| POST   | `/{order_id}/confirm` | Confirm order (deducts stock).                                                                                                          |
+| POST   | `/{order_id}/cancel`  | Cancel if pending/created.                                                                                                              |
 
 ### Users — `/api/v1/users` (**admin**)
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `` | List users. |
-| POST | `/invitations` | Create invite (email). |
-| GET | `/{user_id}` | User detail + assignments. |
-| PUT | `/{user_id}` | Update user **role** (`UserRoleUpdate`). |
-| DELETE | `/{user_id}` | Delete user. |
-| GET | `/{user_id}/tenants` | Tenant briefs for assignments. |
-| PUT | `/{user_id}/tenant-access` | Set `tenant_ids` (empty = all tenants). |
+| Method | Path                       | Description                              |
+| ------ | -------------------------- | ---------------------------------------- |
+| GET    | ``                         | List users.                              |
+| POST   | `/invitations`             | Create invite (email).                   |
+| GET    | `/{user_id}`               | User detail + assignments.               |
+| PUT    | `/{user_id}`               | Update user **role** (`UserRoleUpdate`). |
+| DELETE | `/{user_id}`               | Delete user.                             |
+| GET    | `/{user_id}/tenants`       | Tenant briefs for assignments.           |
+| PUT    | `/{user_id}/tenant-access` | Set `tenant_ids` (empty = all tenants).  |
 
 ### Health
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/health` | Liveness: `{ "status": "ok" }` (no `/api` prefix on backend; exposed via service). |
+| Method | Path      | Description                                                                        |
+| ------ | --------- | ---------------------------------------------------------------------------------- |
+| GET    | `/health` | Liveness: `{ "status": "ok" }` (no `/api` prefix on backend; exposed via service). |
 
 ---
 
@@ -278,16 +278,16 @@ Base path (behind Nginx): **`/api/v1`**. All tenant-scoped routes require **`Aut
 
 See **`.env.example`** for the full list. Important keys:
 
-| Variable | Purpose |
-| -------- | ------- |
-| `DATABASE_URL` | Async SQLAlchemy URL (Postgres in Docker). |
-| `REDIS_URL` | Redis with password. |
-| `JWT_SECRET` | Signing key for JWTs (use a long random value). |
-| `SEED_ON_STARTUP` | If `true`, run seed when DB is empty. |
-| `CORS_ORIGINS` | Allowed browser origins (comma-separated). |
-| `PUBLIC_APP_URL` | Public SPA URL (emails, OAuth redirects). |
-| `RESEND_*`, `INVITE_EXPIRE_HOURS` | Email invites. |
-| `GOOGLE_OAUTH_*` | Optional Google sign-in. |
+| Variable                          | Purpose                                         |
+| --------------------------------- | ----------------------------------------------- |
+| `DATABASE_URL`                    | Async SQLAlchemy URL (Postgres in Docker).      |
+| `REDIS_URL`                       | Redis with password.                            |
+| `JWT_SECRET`                      | Signing key for JWTs (use a long random value). |
+| `SEED_ON_STARTUP`                 | If `true`, run seed when DB is empty.           |
+| `CORS_ORIGINS`                    | Allowed browser origins (comma-separated).      |
+| `PUBLIC_APP_URL`                  | Public SPA URL (emails, OAuth redirects).       |
+| `RESEND_*`, `INVITE_EXPIRE_HOURS` | Email invites.                                  |
+| `GOOGLE_OAUTH_*`                  | Optional Google sign-in.                        |
 
 ---
 
@@ -301,12 +301,12 @@ Nginx applies **rate limits** (stricter on `/api/v1/auth/*` and Google OAuth), s
 
 Orders use statuses **`created`**, **`pending`**, **`confirmed`**, **`cancelled`**:
 
-| Status | Meaning |
-| ------ | ------- |
-| `pending` | At creation, **insufficient** stock for requested quantity. |
-| `created` | At creation, **sufficient** stock; nothing deducted until confirm. |
-| `confirmed` | Stock **deducted** by requested quantity. |
-| `cancelled` | Cancelled before confirmation; inventory unchanged. |
+| Status      | Meaning                                                            |
+| ----------- | ------------------------------------------------------------------ |
+| `pending`   | At creation, **insufficient** stock for requested quantity.        |
+| `created`   | At creation, **sufficient** stock; nothing deducted until confirm. |
+| `confirmed` | Stock **deducted** by requested quantity.                          |
+| `cancelled` | Cancelled before confirmation; inventory unchanged.                |
 
 - **Confirm:** Allowed for `pending` and `created` if current stock ≥ requested quantity.
 - **Cancel:** Not allowed for `confirmed` (API/UI).
@@ -368,20 +368,6 @@ Remove volumes so PostgreSQL and Redis start empty. On the next `docker compose 
 docker compose down -v
 docker compose up --build
 ```
-
----
-
-## Recent updates (documentation snapshot)
-
-The following are notable evolutions reflected across the codebase and this README:
-
-| Area | Change |
-| ---- | ------ |
-| **UI / UX** | Orange-forward theme, **light/dark** mode toggle, aligned sidebar/header, collapsible sidebar with expand on logo, searchable **tenant** selector, **creatable** category/unit on product edit, dashboard KPIs/charts/recent orders polish, status colors (**Created** = sky blue) consistent on dashboard and orders. |
-| **Orders** | List filters, pagination when needed, order detail actions and requested-qty styling rules, seed orders follow **inventory ≥ qty → created** else **pending**. |
-| **Users** | User detail: name in header only; **Role** / access / joined in cards (no duplicate name or role subtitle). |
-| **Backend** | Order creation status rule aligned with assignment doc; seed data uses same rule; **Redis** documented as auth/session support, not cache. |
-| **Quality** | Broad **pytest** coverage; **GitHub Actions** runs backend tests with **coverage floor 75%**; **`pytest-cov`** in test extras. |
 
 ---
 
