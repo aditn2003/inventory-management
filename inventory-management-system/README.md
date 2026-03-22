@@ -87,6 +87,8 @@ Configure in `.env`:
 
 ## Architecture
 
+GitHub Actions workflows live at **`<repo-root>/.github/workflows/`** (next to the folder below), not inside `inventory-management-system/`.
+
 ```
 inventory-management-system/
 ├── backend/                 # FastAPI — REST API under /api/v1
@@ -112,7 +114,6 @@ inventory-management-system/
 │       ├── components/      # Layout, tables, forms, UI primitives
 │       └── pages/         # Route-level screens
 ├── nginx/                   # Reverse proxy; rate limits; /api → API, / → Vite
-├── .github/workflows/       # CI: backend tests + coverage
 └── docker-compose.yml       # nginx, api, frontend, db, redis
 ```
 
@@ -341,7 +342,7 @@ Coverage config (**`backend/.coveragerc`**) omits **`seed.py`**, **`app/email/*`
 
 ## Continuous integration
 
-Workflow: **`.github/workflows/tests.yml`**
+Workflow file: **`<repository-root>/.github/workflows/tests.yml`** (one level **above** `inventory-management-system/`). It runs commands in **`inventory-management-system/backend`**. Initialize Git at the **parent** of `inventory-management-system` so `.github` and `.git` share the same root.
 
 - Triggers on **push** and **pull_request** to `main` / `master`.
 - Runs on **Ubuntu**, Python **3.12**, installs **`backend`** with **`.[test]`**.
