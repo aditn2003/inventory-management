@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.dependencies import close_redis
 from app.config import get_settings
+from app.database import engine
 from app.middleware.logging import LoggingMiddleware
 from app.middleware.error_handler import global_exception_handler
 
@@ -31,9 +33,10 @@ async def lifespan(app: FastAPI):
             else structlog.processors.JSONRenderer(),
         ],
     )
-
     yield
-    # Shutdown (nothing to clean up for now)
+    await close_redis()
+    if settings.environment != "test":
+        await engine.dispose()
 
 
 def create_app() -> FastAPI:

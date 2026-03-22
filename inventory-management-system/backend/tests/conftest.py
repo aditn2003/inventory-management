@@ -3,7 +3,11 @@ pytest configuration and fixtures for backend tests.
 Uses an isolated in-memory SQLite DB and a fake Redis stub.
 """
 import asyncio
+import os
 from typing import AsyncGenerator
+
+# Before app imports: lifespan skips disposing the global engine (tests use test_engine).
+os.environ.setdefault("ENVIRONMENT", "test")
 from unittest.mock import patch
 
 import pytest

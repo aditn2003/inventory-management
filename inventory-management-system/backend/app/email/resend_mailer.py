@@ -31,7 +31,7 @@ async def send_invitation_email(
                     f'<p><a href="{invite_url}">Create your account</a></p>'
                     f"<p>If the link doesn't work, copy and paste this URL into your browser:</p>"
                     f'<p style="word-break:break-all;font-size:12px;color:#444">{invite_url}</p>'
-                    f"<p>This invitation expires in a few days.</p>"
+                    f"<p>This invitation expires in 24 hours.</p>"
                 ),
             },
         )

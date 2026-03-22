@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application configuration loaded from environment (see ``.env.example``)."""
+    """Application configuration loaded from environment (see ``.env``)."""
 
     # utf-8-sig: Windows editors often save .env with BOM; without this, the first key may not load.
     model_config = SettingsConfigDict(
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str
-    database_url_sync: str = ""
+    database_url_sync: str
 
     # Redis
     redis_url: str
@@ -29,14 +29,13 @@ class Settings(BaseSettings):
 
     # Application
     seed_on_startup: bool = False
-    cors_origins: str = "http://localhost"
+    cors_origins: str
     environment: Literal["development", "production", "test"] = "development"
-    # Public URL of the SPA (for invite links in emails), no trailing slash
     public_app_url: str = "http://localhost"
     # Resend (https://resend.com) — invitation emails
-    resend_api_key: str = ""
-    resend_from_email: str = "IMS <onboarding@resend.dev>"
-    invite_expire_hours: int = 168  # 7 days
+    resend_api_key: str 
+    resend_from_email: str
+    invite_expire_hours: int
 
     # Google OAuth 2.0 (Sign in with Google) — leave client id/secret empty to disable
     google_oauth_client_id: str = ""

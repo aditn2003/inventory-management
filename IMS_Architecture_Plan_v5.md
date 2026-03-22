@@ -1,14 +1,6 @@
 # Inventory Management System — Architecture & Implementation Plan v5
 
-> **Purpose**: Single source of truth for building the IMS. Built on v4, with targeted fixes from a full requirements + wireframe audit.
->
-> **What changed from v4**:
-> - Redux Toolkit (RTK) re-introduced for auth/tenant state — the requirements explicitly list Redux and RTK satisfies it with ~60 lines total (2 slices), no excessive boilerplate.
-> - Tenant Detail page added — the action menu has "View" on tenant rows; a detail page satisfies this cleanly rather than a no-op.
-> - Order edit business rule clarified — editing quantity on a `created` order would desync deducted stock; quantity is now only editable on `pending` orders. `created` orders allow notes-only edits.
-> - Inventory delete behavior clarified — direct delete on an inventory row triggers confirmation and cascades to soft-delete the parent product (since product without inventory is invalid).
-> - 12 phases → 13 phases: Auth API extracted to its own phase; backend test phase retained; Tenant + Product entity pages separated from Inventory + Order pages for more manageable handoffs.
-> - Project structure updated to reflect RTK (`store/` replaces `contexts/`).
+> **Purpose**: Single source of truth for building the IMS.
 
 ---
 
@@ -16,20 +8,19 @@
 
 This section documents every deliberate deviation from the stated preferences and every ambiguity resolved. Raise these at the interview.
 
-| # | Decision | Reasoning |
-|---|----------|-----------|
-| 1 | **Backend: FastAPI (Python) instead of Node.js/Express** | Requirements allow own tech stack. FastAPI offers auto-generated OpenAPI docs (useful for demo), native async/await, Pydantic validation at the framework level, and Alembic for reproducible migrations — all with less boilerplate than Express + joi + Sequelize/Prisma. |
-| 2 | **Redux Toolkit for UI state (auth + tenant)** | Requirements explicitly list Redux. RTK's `createSlice` produces only ~30 lines per slice. The app has exactly 2 global state concerns: current user + selected tenant. RTK satisfies the requirement and is the modern Redux standard. TanStack Query is still omitted — custom hooks remain for data fetching (sufficient at this scale). |
-| 3 | **No authentication required in spec — added anyway** | Requirements do not mention login. A full JWT auth system is added because the evaluation criteria explicitly test "multi-tenant data isolation" and "how well is data scoped per tenant." Auth enables proper tenant scoping via X-Tenant-Id header + JWT claims. |
-| 4 | **Tenant Detail page added** | The action menu has a "View" item on every tenant row. Wiring "View" to a no-op or back to the list creates a broken UX. A simple detail page (name, ID, status, created date) is minimal effort and correct. |
-| 5 | **Product categories fixed as: Metals, Chemicals, Plastics** | Wireframes show these three. Requirements do not enumerate them. Assumption: these are the only supported categories. |
-| 6 | **Order quantity editable only when status = pending** | Editing quantity on a `created` order (stock already deducted) would create a stock inconsistency without a compensating transaction. The safest rule: `created` orders allow notes edits only; `pending` orders allow qty + notes. |
-| 7 | **Inventory delete cascades to parent product** | Inventory is 1:1 with a product. A product without inventory is an invalid state. Direct deletion from the inventory list shows a confirmation: "This will also delete [Product Name]. Are you sure?" and triggers the same soft-delete as product delete. |
-| 8 | **Redis included for token blacklist** | Without a blacklist, logout is cosmetic (old tokens remain valid until expiry). Redis adds one container but gives real security. It also handles rate-limit counters and summary caching. |
-| 9 | **Soft deletes on all entities** | Prevents accidental data loss, allows audit trail. `deleted_at IS NOT NULL` rows are excluded from all queries by default. |
-| 10 | **ORD-XXXX display IDs are per-tenant sequential** | Each tenant's orders start from ORD-1001. This matches the wireframe example values. |
-| 11 | **All users see all tenants by default** | Requirements do not specify any user-tenant restriction. A logged-in user sees all tenants in the dropdown unless an Admin has explicitly restricted them. This is the simplest faithful interpretation of the spec. Raise at the interview. |
-| 12 | **Admin-managed user-tenant assignments (added feature)** | Requirements do not mention this. Added to demonstrate meaningful multi-tenancy access control. Admins can assign specific tenants to a user; once assigned, that user sees only their assigned tenants. A user with zero assignments retains the default all-access. Raise at the interview. |
+| #   | Decision                                                     | Reasoning                                                                                                                                                                                                                                                                                     |
+| --- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Backend: FastAPI (Python) instead of Node.js/Express**     | FastAPI offers auto-generated OpenAPI docs (useful for demo), native async/await, Pydantic validation at the framework level, and Alembic for reproducible migrations — all with less boilerplate than Express + joi + Sequelize/Prisma.                                                      |
+| 2   | **Redux Toolkit for UI state (auth + tenant)**               | RTK's `createSlice` produces only ~30 lines per slice. The app has exactly 2 global state concerns: current user + selected tenant. RTK satisfies the requirement and is the modern Redux standard.                                                                                           |
+| 3   | **No authentication required in spec — added anyway**        | A full JWT auth system is added because the evaluation criteria explicitly test "multi-tenant data isolation" and "how well is data scoped per tenant." Auth enables proper tenant scoping via X-Tenant-Id header + JWT claims.                                                               |
+| 4   | **Tenant Detail page added**                                 | The action menu has a "View" item on every tenant row. Wiring "View" to a no-op or back to the list creates a broken UX. A simple detail page (name, ID, status, created date) is minimal effort and correct.                                                                                 |
+| 5   | **Product categories fixed as: Metals, Chemicals, Plastics** | Wireframes show these three. Requirements do not enumerate them. Assumption: these are the only supported categories.                                                                                                                                                                         |
+| 6   | **Order quantity editable only when status = pending**       | Editing quantity on a `created` order (stock already deducted) would create a stock inconsistency without a compensating transaction. The safest rule: `created` orders allow notes edits only; `pending` orders allow qty + notes.                                                           |
+| 7   | **Inventory delete cascades to parent product**              | Inventory is 1:1 with a product. A product without inventory is an invalid state. Direct deletion from the inventory list shows a confirmation: "This will also delete [Product Name]. Are you sure?" and triggers the same soft-delete as product delete.                                    |
+| 8   | **Redis included for token blacklist**                       | Without a blacklist, logout is cosmetic (old tokens remain valid until expiry). Redis adds one container but gives real security. It also handles rate-limit counters and summary caching.                                                                                                    |
+| 9   | **ORD-XXXX display IDs are per-tenant sequential**           | Each tenant's orders start from ORD-1001. This matches the wireframe example values.                                                                                                                                                                                                          |
+| 10  | **All users see all tenants by default**                     | Requirements do not specify any user-tenant restriction. A logged-in user sees all tenants in the dropdown unless an Admin has explicitly restricted them. This is the simplest faithful interpretation of the spec. Raise at the interview.                                                  |
+| 11  | **Admin-managed user-tenant assignments (added feature)**    | Requirements do not mention this. Added to demonstrate meaningful multi-tenancy access control. Admins can assign specific tenants to a user; once assigned, that user sees only their assigned tenants. A user with zero assignments retains the default all-access. Raise at the interview. |
 
 ---
 
@@ -38,6 +29,7 @@ This section documents every deliberate deviation from the stated preferences an
 Every page shares an identical outer shell. Build this FIRST as a reusable Layout component.
 
 ### Sidebar (left, fixed, w-64)
+
 - White background, right border (gray-200)
 - **Brand header** (h-16, border-bottom): Text "Inventory Management System" in blue-600, font-bold
 - **Navigation links** (4 items, stacked vertically, px-4 py-4):
@@ -45,17 +37,19 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
   2. Products — icon: `ph ph-package`
   3. Inventory — icon: `ph ph-stack`
   4. Orders — icon: `ph ph-shopping-cart`
-  5. Users — icon: `ph ph-users-three` *(rendered only when `auth.user.role === 'admin'`)*
+  5. Users — icon: `ph ph-users-three` _(rendered only when `auth.user.role === 'admin'`)_
 - **Active state**: blue-600 text + blue-50 background + rounded-lg
 - **Inactive state**: gray-700 text + hover:bg-gray-100
 - Icons use **Phosphor Icons** (`@phosphor-icons/react`, regular weight)
 
 ### Top header bar (full width of content area, h-16)
+
 - White background, bottom border (gray-200)
 - **Left side**: empty (no global search bar — removed per requirements)
 - **Right side**: notification bell icon (`ph ph-bell`, gray-400) + user avatar circle
 
 **User avatar (interactive)**:
+
 - 32×32px circle, blue-500 background, white text, shows user initials (e.g. "JD"), font-bold
 - Clicking the avatar toggles a dropdown menu (absolute, right-0, mt-2, w-48, white bg, shadow-lg, border border-gray-200, rounded-lg, z-50)
 - Dropdown contents:
@@ -71,6 +65,7 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 - Implemented with local `useState<boolean>` for open/close — no Redux involvement for the dropdown state itself
 
 ### Content area
+
 - Background: gray-50
 - Full height minus header, overflow-y: auto
 - Padding: p-8
@@ -91,10 +86,11 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 | Active / In-Active | green-500 | "24 / 10" format | "healthy status" |
 
 **List table** columns: Tenant ID (TEN-001 format), Tenant Name, Status (badge), Actions
+
 - **Status badges**: Active = green-100/green-700; Inactive = gray-100/gray-600
 - **Row click** → `/tenants/:id` (tenant detail)
 - **Action menu**: View → `/tenants/:id`, Edit → `/tenants/:id/edit`, Delete (red text)
-- **Search**: placeholder "Search tenants..." *(wireframe incorrectly shows "Search products...")*
+- **Search**: placeholder "Search tenants..." _(wireframe incorrectly shows "Search products...")_
 - **Sort**: Name (A-Z), Status
 - **Pagination**: "Showing 1 to 10 of N results" + Previous / page numbers / Next
 
@@ -104,6 +100,7 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 **Action buttons**: Edit → `/tenants/:id/edit`, Delete
 
 **Header card**:
+
 - Tenant initial avatar (48×48 circle, blue-100 bg, blue-600 text, first letter of tenant name)
 - **Tenant Name**: text-2xl font-bold, gray-900
 - **Status badge**: Active/Inactive pill
@@ -126,6 +123,7 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 ### 2.4 Product List (`/products`)
 
 **Header row**: Title "Products" (left) + Tenant dropdown + `+ New Product` button (right)
+
 - **Tenant dropdown**: "Select Tenant..." default. Selecting a tenant filters the entire page.
 
 **No-tenant-selected state**: When `selectedTenantId` is null (no tenant chosen), the table body is replaced by `<EmptyState>` (icon: `ph-buildings`, heading: "No tenant selected", subtext: "Choose a tenant from the dropdown above to view products."). The `+ New Product` button is **disabled** (opacity-50, cursor-not-allowed). No API call is made.
@@ -137,6 +135,7 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 | Active / In-Active | green-500 | "110 / 18" format | "product status" |
 
 **List table** columns: Name, SKU, Category, Status (badge), Actions
+
 - **Row click** → `/products/:id`
 - **Action menu**: View, Edit, Delete
 - Search (placeholder: "Search products..."), sort (Name A-Z, Status), pagination
@@ -147,13 +146,15 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 **Action buttons**: Edit → `/products/:id/edit`, Delete
 
 **Header card**:
+
 - Tenant initial avatar (48×48, red-100 bg, red-600 text)
 - Product name (text-2xl, gray-900, NOT a link)
-- Status badge + subtitle "SKU: ADH-100  |  Tenant: Acme Corp"
+- Status badge + subtitle "SKU: ADH-100 | Tenant: Acme Corp"
 
 **Info cards** (4 cards, grid-cols-4): Category, Cost per Unit, Current Stock (blue-600 text, shown as `{value} {unit}` e.g. "45 kg"), Reorder Point
 
 **Additional Information** (card with gray-50 header):
+
 - Description paragraph
 - **Inventory Quick Update**: number input (prefilled with current stock) + "Update Stock" button
 
@@ -185,10 +186,11 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 | Below Reorder Threshold | red-500 | count (red-600 text) | "products require immediate purchasing" |
 
 **List table** columns: Product Name, SKU, Cost per Unit, Current Stock, Reorder Threshold, Actions
+
 - **CRITICAL COLOR RULE**: Stock ≥ threshold → blue-600 font-bold; Stock < threshold → red-600 font-bold
 - **Row click** → `/inventory/:id`
 - **Action menu**: View, Edit, **Reset Stock**, Delete (triggers cascade-delete confirmation — see Section 7, Rule #13)
-  - *Reset Stock*: confirmation modal "Reset [Product Name] stock to 0?" → `PATCH /inventory/:id { "current_stock": 0 }`. No endpoint change needed — reuses the existing PATCH.
+  - _Reset Stock_: confirmation modal "Reset [Product Name] stock to 0?" → `PATCH /inventory/:id { "current_stock": 0 }`. No endpoint change needed — reuses the existing PATCH.
 - Search (placeholder: "Search inventory..." — wireframe incorrectly shows "Search products..."), sort, pagination
 
 ### 2.8 Inventory Detail (`/inventory/:id`)
@@ -196,12 +198,13 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 **Back link**: "Back to Inventory" → `/inventory`
 **Action buttons**: Edit → `/inventory/:id/edit`, **Reset Stock** (orange/amber button — confirmation modal before zeroing stock), Delete (cascade confirmation)
 
-*Reset Stock button*: amber-600 text + border, distinct from the red Delete button. Clicking opens ConfirmDialog: "Reset stock for [Product Name] to 0?" → on confirm calls `PATCH /inventory/:id { "current_stock": 0 }` → refetch on success.
+_Reset Stock button_: amber-600 text + border, distinct from the red Delete button. Clicking opens ConfirmDialog: "Reset stock for [Product Name] to 0?" → on confirm calls `PATCH /inventory/:id { "current_stock": 0 }` → refetch on success.
 
 **Header card**:
+
 - Tenant initial avatar
 - **Product name is a CLICKABLE LINK** (blue-600, hover:underline) → `/products/:id`
-- Status badge + subtitle "SKU: ADH-100  |  Tenant: Acme Corp"
+- Status badge + subtitle "SKU: ADH-100 | Tenant: Acme Corp"
 
 **Info cards** (4 cards, grid-cols-4): Category, Cost per Unit, Current Stock (blue-600, shown as `{value} {unit}` e.g. "45 kg"), Reorder Point
 
@@ -232,6 +235,7 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 | Total Created | green-500 | count | "successfully processed" |
 
 **List table** columns: Order ID (ORD-1001 format), Product, Qty, Status (badge), Date (YYYY-MM-DD), Actions
+
 - **Status badges**: Created = green-100/green-700; Pending = yellow-100/yellow-700; Cancelled = red-100/red-600
 - **Row click** → `/orders/:id`
 - **Action menu**: View, Edit, Delete
@@ -243,14 +247,16 @@ Every page shares an identical outer shell. Build this FIRST as a reusable Layou
 **Action buttons**: Edit, Delete
 
 **Header card**:
+
 - Tenant initial avatar
 - Title: "Order ORD-1001"
-- Status badge: Created/Pending/Cancelled *(wireframe incorrectly shows "Active" — corrected)*
-- Subtitle: "Product: [Product Name as LINK to `/products/:id`]  |  Tenant: Acme Corp"
+- Status badge: Created/Pending/Cancelled _(wireframe incorrectly shows "Active" — corrected)_
+- Subtitle: "Product: [Product Name as LINK to `/products/:id`] | Tenant: Acme Corp"
 
 **Info cards** (4 cards, grid-cols-4): Requested Quantity, Cost per Unit, Current Stock (blue-600, shown as `{value} {unit}`), Reorder Point
 
 **Primary action buttons** (between info cards and Additional Information):
+
 - **Confirm Order** (blue-600 bg) — `POST /api/v1/orders/:id/confirm`; `pending` → `created`. **Visible only when status = pending.**
 - **Cancel Order** (red border, red text) — `POST /api/v1/orders/:id/cancel`; restores stock if was `created`. **Visible when status = created or pending.**
 - **Both hidden** when order is `cancelled`.
@@ -287,10 +293,10 @@ Tenant List       →  Tenant Detail      (row click + View action)
 
 ## 4. Display ID Generation
 
-| Entity | Format | Example | Rule |
-|--------|--------|---------|------|
-| Tenant | TEN-XXX | TEN-001 | Sequential, zero-padded, system-wide |
-| Order | ORD-XXXX | ORD-1001 | Sequential, zero-padded, per-tenant |
+| Entity | Format   | Example  | Rule                                 |
+| ------ | -------- | -------- | ------------------------------------ |
+| Tenant | TEN-XXX  | TEN-001  | Sequential, zero-padded, system-wide |
+| Order  | ORD-XXXX | ORD-1001 | Sequential, zero-padded, per-tenant  |
 
 Products and inventory use user-provided SKU as the display identifier.
 
@@ -429,11 +435,11 @@ The tenant middleware sets `app.current_tenant_id` on each DB session before any
 
 ### Status definitions
 
-| Status | Badge color | Meaning |
-|--------|------------|---------|
-| `created` | green-100/green-700 | Order fulfilled; stock deducted |
-| `pending` | yellow-100/yellow-700 | Insufficient stock at order time; stock NOT deducted |
-| `cancelled` | red-100/red-600 | Cancelled; deducted stock restored if was `created` |
+| Status      | Badge color           | Meaning                                              |
+| ----------- | --------------------- | ---------------------------------------------------- |
+| `created`   | green-100/green-700   | Order fulfilled; stock deducted                      |
+| `pending`   | yellow-100/yellow-700 | Insufficient stock at order time; stock NOT deducted |
+| `cancelled` | red-100/red-600       | Cancelled; deducted stock restored if was `created`  |
 
 ### State machine
 
@@ -472,6 +478,7 @@ The tenant middleware sets `app.current_tenant_id` on each DB session before any
 ### Rules for each transition
 
 **1. Create order (`POST /api/v1/orders`)**
+
 - Validate product is active → 400 if inactive
 - Check: `current_stock ≥ requested_qty`?
   - **YES**: status = `created`, deduct stock (DB transaction)
@@ -479,6 +486,7 @@ The tenant middleware sets `app.current_tenant_id` on each DB session before any
 - Auto-generate `ORD-XXXX` display ID
 
 **2. Confirm order (`POST /api/v1/orders/:id/confirm`)**
+
 - Only valid when status = `pending` → 409 if status is `created` or `cancelled`
 - `SELECT ... FOR UPDATE` on inventory row
 - Re-check: `current_stock ≥ requested_qty`?
@@ -486,58 +494,63 @@ The tenant middleware sets `app.current_tenant_id` on each DB session before any
   - **NO**: 409 "Insufficient stock (available: X, requested: Y)"
 
 **3. Cancel order (`POST /api/v1/orders/:id/cancel`)**
+
 - Valid when status = `created` or `pending` → 409 if already `cancelled`
 - If was `created`: restore stock (`current_stock += requested_qty`)
 - If was `pending`: no stock change
 - Set status = `cancelled`
 
 **4. Edit order (`PUT /api/v1/orders/:id`)**
+
 - Rejects if status = `cancelled` → 409
 - If status = `created`: **only notes can be updated** (quantity field rejected → 422)
 - If status = `pending`: quantity + notes both updatable
 
 **5. Cancelled order immutability**
+
 - `cancelled` orders cannot be confirmed, quantity-edited, or un-cancelled
 - `POST /orders/:id/confirm` → 409 if cancelled
 - `PUT /orders/:id` → 409 if cancelled
 
 **6. Concurrency safety**
+
 - All stock-modifying operations use `SELECT ... FOR UPDATE` on inventory row within a DB transaction.
 
 ---
 
 ## 7. Business Rules (exhaustive)
 
-| # | Rule | Enforced by |
-|---|------|-------------|
-| 1 | **Tenant isolation**: users see only their selected tenant's data | DB (RLS) + API middleware |
-| 2 | **SKU immutability**: SKU cannot change after product creation | API validation (reject PUT if sku differs) |
-| 3 | **Inventory auto-creation**: creating a product auto-creates inventory (stock=0) | API service layer (DB transaction) |
-| 4 | **Inventory cascade delete**: deleting a product deletes its inventory row | DB FK ON DELETE CASCADE + soft-delete logic |
-| 5 | **Inventory delete from list = product delete**: confirms "also deletes [Product Name]" | Frontend confirmation dialog + API cascades |
-| 5a | **Reset Stock** ≠ Delete: "Reset Stock" zeroes `current_stock` via `PATCH /inventory/:id`; the inventory row and parent product are **not** deleted. Shown as a distinct amber button/action to prevent user confusion between zeroing stock and deleting the record. | Existing PATCH endpoint + distinct UI treatment |
-| 6 | **Active product gate**: only active products selectable when creating orders | API validation + frontend disables inactive |
-| 7 | **Reorder alert coloring**: stock < threshold → red-600; stock ≥ threshold → blue-600 | Frontend conditional class |
-| 8 | **Reorder alert tile**: counts products below their reorder threshold | API computes server-side in summary response |
-| 9 | **Order status values**: 'created' (green), 'pending' (yellow), 'cancelled' (red) | DB CHECK constraint + API validation |
-| 10 | **Display ID generation**: TEN-XXX for tenants, ORD-XXXX per-tenant for orders | API service layer on create |
-| 11 | **Tenant status default**: new tenants default to 'active' | DB DEFAULT + API |
-| 12 | **Category enum**: Metals, Chemicals, Plastics | DB CHECK + frontend dropdown |
-| 13 | **No inventory create button**: inventory only created via product creation | Frontend (no button) + API (no POST /inventory) |
-| 14 | **Cross-entity links**: inventory/order detail → product detail via clickable Link | Frontend React Router Links |
-| 15 | **Order auto-deduction**: stock deducted on create if sufficient; otherwise pending | API service layer |
-| 16 | **Order confirm**: pending→created with stock deduction; 409 if insufficient | API service layer |
-| 17 | **Order cancel with stock restoration**: restores stock only if was `created` | API service layer |
-| 18 | **Order edit restriction**: `created` orders only allow notes edit (qty immutable) | API validation (422 if qty changes on created order) |
-| 19 | **Cancelled order immutability**: no confirm, no edit, no un-cancel | API validation |
-| 20 | **Concurrency safety**: SELECT FOR UPDATE on all stock-modifying operations | API + DB transaction |
-| 21 | **Tenant detail page**: View action on tenant rows navigates to `/tenants/:id` | Frontend routing |
+| #   | Rule                                                                                                                                                                                                                                                                  | Enforced by                                          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1   | **Tenant isolation**: users see only their selected tenant's data                                                                                                                                                                                                     | DB (RLS) + API middleware                            |
+| 2   | **SKU immutability**: SKU cannot change after product creation                                                                                                                                                                                                        | API validation (reject PUT if sku differs)           |
+| 3   | **Inventory auto-creation**: creating a product auto-creates inventory (stock=0)                                                                                                                                                                                      | API service layer (DB transaction)                   |
+| 4   | **Inventory cascade delete**: deleting a product deletes its inventory row                                                                                                                                                                                            | DB FK ON DELETE CASCADE + soft-delete logic          |
+| 5   | **Inventory delete from list = product delete**: confirms "also deletes [Product Name]"                                                                                                                                                                               | Frontend confirmation dialog + API cascades          |
+| 5a  | **Reset Stock** ≠ Delete: "Reset Stock" zeroes `current_stock` via `PATCH /inventory/:id`; the inventory row and parent product are **not** deleted. Shown as a distinct amber button/action to prevent user confusion between zeroing stock and deleting the record. | Existing PATCH endpoint + distinct UI treatment      |
+| 6   | **Active product gate**: only active products selectable when creating orders                                                                                                                                                                                         | API validation + frontend disables inactive          |
+| 7   | **Reorder alert coloring**: stock < threshold → red-600; stock ≥ threshold → blue-600                                                                                                                                                                                 | Frontend conditional class                           |
+| 8   | **Reorder alert tile**: counts products below their reorder threshold                                                                                                                                                                                                 | API computes server-side in summary response         |
+| 9   | **Order status values**: 'created' (green), 'pending' (yellow), 'cancelled' (red)                                                                                                                                                                                     | DB CHECK constraint + API validation                 |
+| 10  | **Display ID generation**: TEN-XXX for tenants, ORD-XXXX per-tenant for orders                                                                                                                                                                                        | API service layer on create                          |
+| 11  | **Tenant status default**: new tenants default to 'active'                                                                                                                                                                                                            | DB DEFAULT + API                                     |
+| 12  | **Category enum**: Metals, Chemicals, Plastics                                                                                                                                                                                                                        | DB CHECK + frontend dropdown                         |
+| 13  | **No inventory create button**: inventory only created via product creation                                                                                                                                                                                           | Frontend (no button) + API (no POST /inventory)      |
+| 14  | **Cross-entity links**: inventory/order detail → product detail via clickable Link                                                                                                                                                                                    | Frontend React Router Links                          |
+| 15  | **Order auto-deduction**: stock deducted on create if sufficient; otherwise pending                                                                                                                                                                                   | API service layer                                    |
+| 16  | **Order confirm**: pending→created with stock deduction; 409 if insufficient                                                                                                                                                                                          | API service layer                                    |
+| 17  | **Order cancel with stock restoration**: restores stock only if was `created`                                                                                                                                                                                         | API service layer                                    |
+| 18  | **Order edit restriction**: `created` orders only allow notes edit (qty immutable)                                                                                                                                                                                    | API validation (422 if qty changes on created order) |
+| 19  | **Cancelled order immutability**: no confirm, no edit, no un-cancel                                                                                                                                                                                                   | API validation                                       |
+| 20  | **Concurrency safety**: SELECT FOR UPDATE on all stock-modifying operations                                                                                                                                                                                           | API + DB transaction                                 |
+| 21  | **Tenant detail page**: View action on tenant rows navigates to `/tenants/:id`                                                                                                                                                                                        | Frontend routing                                     |
 
 ---
 
 ## 8. API Design
 
 ### Conventions
+
 - RESTful, JSON, all routes under `/api/v1/`
 - Tenant scoping via `X-Tenant-Id` header (validated against JWT claims)
 - Standard HTTP codes: 200, 201, 204, 400, 401, 403, 404, 409, 422, 429, 500
@@ -560,27 +573,32 @@ models.py       ← ORM model definitions (SQLAlchemy Table classes, relationshi
 ```
 
 **router.py** responsibilities:
+
 - Parse and validate HTTP request via Pydantic schemas
 - Call the service layer with typed domain objects
 - Return HTTP responses with correct status codes
 
 **service.py** responsibilities:
+
 - Enforce business rules (e.g. SKU immutability, active-product gate, stock deduction logic)
 - Orchestrate multi-step operations (e.g. create product → create inventory in one transaction)
 - Call repository methods — never call `session` directly
 
 **repository.py** responsibilities:
+
 - All `session.execute()`, `session.add()`, `session.delete()` calls live here
 - Returns domain model instances or typed dicts — never raw SQLAlchemy Row objects to the service
 - Accepts `AsyncSession` as a parameter (injected by FastAPI dependency)
 
 **models.py** responsibilities:
+
 - SQLAlchemy ORM class definitions, column types, constraints, relationships
 - No business logic — pure data shape definitions
 
 ### Endpoints
 
 #### Auth (no tenant scoping)
+
 ```
 POST   /api/v1/auth/register
 POST   /api/v1/auth/login            → { access_token, refresh_token }
@@ -590,6 +608,7 @@ GET    /api/v1/auth/me                → current user + tenant roles
 ```
 
 #### Tenants
+
 ```
 GET    /api/v1/tenants                → list (admin: all tenants; user: all tenants by default,
                                         or only assigned tenants if admin has restricted them)
@@ -600,6 +619,7 @@ DELETE /api/v1/tenants/:id            → soft-delete — requires admin role
 ```
 
 #### Users (admin only — all endpoints require `require_admin()`)
+
 ```
 GET    /api/v1/users                         → list all users (id, email, role, assigned_tenant_count)
 GET    /api/v1/users/:id                     → user detail (email, role, assigned tenants list)
@@ -612,6 +632,7 @@ DELETE /api/v1/users/:id/tenants/:tenant_id  → remove tenant assignment from u
 ```
 
 #### Products (require X-Tenant-Id)
+
 ```
 GET    /api/v1/products               → list + summary (total, active, inactive)
 POST   /api/v1/products               → create + auto-create inventory row (transaction); accepts optional `unit` field (default: 'units') passed through to the inventory row
@@ -621,15 +642,18 @@ DELETE /api/v1/products/:id           → soft-delete product + cascade inventor
 ```
 
 #### Inventory (require X-Tenant-Id)
+
 ```
 GET    /api/v1/inventory              → list + summary (below_reorder_count)
 GET    /api/v1/inventory/:id          → detail
 PATCH  /api/v1/inventory/:id          → update stock { "current_stock": 50 }
 DELETE /api/v1/inventory/:id          → soft-delete inventory + cascade parent product
 ```
+
 **No POST endpoint** — inventory only created via product creation.
 
 #### Orders (require X-Tenant-Id)
+
 ```
 GET    /api/v1/orders                 → list + summary (total, pending, created, cancelled)
 POST   /api/v1/orders                 → create (validates active product, auto-deducts or pends, ORD-XXXX)
@@ -656,31 +680,31 @@ POST   /api/v1/orders/:id/cancel      → created/pending→cancelled (restore s
 { "total": 1024, "pending": 12, "created": 1005, "cancelled": 7 }
 ```
 
-*Note: The `cancelled` count in orders is returned in the API payload but does NOT get its own summary tile in the UI — the wireframe shows exactly 3 tiles and that layout is preserved.*
+_Note: The `cancelled` count in orders is returned in the API payload but does NOT get its own summary tile in the UI — the wireframe shows exactly 3 tiles and that layout is preserved._
 
 ---
 
 ## 9. Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Frontend | React 18 + Vite + TypeScript | Fast HMR builds, type safety across the stack |
-| Styling | Tailwind CSS | Wireframes use Tailwind classes — match exactly |
-| Icons | @phosphor-icons/react | Wireframes use Phosphor Icons |
-| Routing | React Router v6 | Nested layout routes, list→detail→edit |
-| State | **Redux Toolkit** (auth slice + tenant slice) | Required by assignment; RTK minimizes boilerplate (`createSlice`). Two slices (~60 lines each) manage auth + selected tenant. |
-| Forms | react-hook-form + zod | Schema validation, inline errors, zodResolver |
-| Toasts | sonner | Lightweight toast notifications |
-| HTTP client | Axios | Interceptors for JWT refresh + X-Tenant-Id injection |
-| Backend | Python 3.12 + FastAPI | Auto OpenAPI docs, Pydantic validation, native async/await |
-| ORM | SQLAlchemy 2.0 (asyncio) | Typed queries, relationship mapping, async session |
-| Migrations | Alembic | Versioned, reproducible schema changes |
-| Database | PostgreSQL 16 | RLS for tenant isolation, ACID for inventory deductions |
-| Cache | Redis 7 | Token blacklist (real logout), rate-limit counters |
-| Auth | JWT (access 15min + refresh 7d) | Stateless; refresh rotation for security |
-| Password hash | bcrypt (cost 12) | Industry standard |
-| Proxy | Nginx | TLS termination, rate limiting, security headers |
-| Containers | Docker + Docker Compose | One-command full stack |
+| Layer         | Technology                                    | Why                                                                                                                           |
+| ------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Frontend      | React 18 + Vite + TypeScript                  | Fast HMR builds, type safety across the stack                                                                                 |
+| Styling       | Tailwind CSS                                  | Wireframes use Tailwind classes — match exactly                                                                               |
+| Icons         | @phosphor-icons/react                         | Wireframes use Phosphor Icons                                                                                                 |
+| Routing       | React Router v6                               | Nested layout routes, list→detail→edit                                                                                        |
+| State         | **Redux Toolkit** (auth slice + tenant slice) | Required by assignment; RTK minimizes boilerplate (`createSlice`). Two slices (~60 lines each) manage auth + selected tenant. |
+| Forms         | react-hook-form + zod                         | Schema validation, inline errors, zodResolver                                                                                 |
+| Toasts        | sonner                                        | Lightweight toast notifications                                                                                               |
+| HTTP client   | Axios                                         | Interceptors for JWT refresh + X-Tenant-Id injection                                                                          |
+| Backend       | Python 3.12 + FastAPI                         | Auto OpenAPI docs, Pydantic validation, native async/await                                                                    |
+| ORM           | SQLAlchemy 2.0 (asyncio)                      | Typed queries, relationship mapping, async session                                                                            |
+| Migrations    | Alembic                                       | Versioned, reproducible schema changes                                                                                        |
+| Database      | PostgreSQL 16                                 | RLS for tenant isolation, ACID for inventory deductions                                                                       |
+| Cache         | Redis 7                                       | Token blacklist (real logout), rate-limit counters                                                                            |
+| Auth          | JWT (access 15min + refresh 7d)               | Stateless; refresh rotation for security                                                                                      |
+| Password hash | bcrypt (cost 12)                              | Industry standard                                                                                                             |
+| Proxy         | Nginx                                         | TLS termination, rate limiting, security headers                                                                              |
+| Containers    | Docker + Docker Compose                       | One-command full stack                                                                                                        |
 
 ### Why Redux Toolkit (v5 decision)
 
@@ -689,22 +713,30 @@ The requirements explicitly list Redux as the preferred state management library
 ```typescript
 // store/authSlice.ts — ~30 lines
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState: { user: null, accessToken: null },
   reducers: {
-    setCredentials: (state, action) => { /* ... */ },
-    clearCredentials: (state) => { /* ... */ }
-  }
+    setCredentials: (state, action) => {
+      /* ... */
+    },
+    clearCredentials: (state) => {
+      /* ... */
+    },
+  },
 });
 
 // store/tenantSlice.ts — ~20 lines
 const tenantSlice = createSlice({
-  name: 'tenant',
+  name: "tenant",
   initialState: { selectedTenantId: null, tenants: [] },
   reducers: {
-    setSelectedTenant: (state, action) => { /* ... */ },
-    setTenants: (state, action) => { /* ... */ }
-  }
+    setSelectedTenant: (state, action) => {
+      /* ... */
+    },
+    setTenants: (state, action) => {
+      /* ... */
+    },
+  },
 });
 ```
 
@@ -713,6 +745,7 @@ Components use `useSelector` / `useDispatch` via thin wrapper hooks (`useAuth()`
 ### Why custom hooks over TanStack Query
 
 Data fetching uses custom hooks wrapping Axios calls with `useState` + `useEffect`. This is:
+
 - Zero additional dependencies
 - Predictable and easy to debug
 - Sufficient for this app's scale (no background refetching, optimistic updates, or infinite scroll needed)
@@ -725,32 +758,33 @@ These conventions are enforced across the entire codebase for readability and ma
 
 #### Frontend
 
-| Convention | Rule |
-|-----------|------|
-| **No magic strings** | All domain values (status strings, category names, badge color classes) live in `src/utils/constants.ts`. Components import from there — no inline `"active"`, `"pending"`, `"Chemicals"` literals in JSX or logic. |
-| **No `any` types** | All API responses, component props, and hook return values are typed through `src/types/`. TypeScript `strict` mode enabled in `tsconfig.json`. |
-| **No inline API calls in components** | Components never call Axios directly. All data fetching goes through custom hooks in `src/hooks/`. Mutations go through the `src/api/` modules called inside handlers. |
-| **No direct `dispatch` in JSX** | Redux dispatch calls are always wrapped in a hook (`useAuth()`, `useTenant()`). JSX never calls `useDispatch()` directly. |
-| **Consistent error handling** | All Axios error catches call `getApiErrorMessage(err)` from `src/utils/apiError.ts`. This helper reads `err.response?.data?.error?.message` with a fallback to `err.message`. No raw `catch (e: any)` spread through component code. |
-| **One Zod schema per form** | Every create/edit form has exactly one Zod schema in `src/schemas/`. The schema is imported by the page component only — never duplicated. |
-| **Component single responsibility** | Each component does one thing. `DataTable` renders lists. `ConfirmDialog` confirms destructive actions. Pages compose these components — they do not contain table markup or dialog markup directly. |
-| **Loading + empty + error states always handled** | Every data-fetching hook returns `{ data, loading, error, refetch }`. Every list page handles all three states using `<LoadingSkeleton>`, `<EmptyState>`, and an inline error message. |
+| Convention                                        | Rule                                                                                                                                                                                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **No magic strings**                              | All domain values (status strings, category names, badge color classes) live in `src/utils/constants.ts`. Components import from there — no inline `"active"`, `"pending"`, `"Chemicals"` literals in JSX or logic.                  |
+| **No `any` types**                                | All API responses, component props, and hook return values are typed through `src/types/`. TypeScript `strict` mode enabled in `tsconfig.json`.                                                                                      |
+| **No inline API calls in components**             | Components never call Axios directly. All data fetching goes through custom hooks in `src/hooks/`. Mutations go through the `src/api/` modules called inside handlers.                                                               |
+| **No direct `dispatch` in JSX**                   | Redux dispatch calls are always wrapped in a hook (`useAuth()`, `useTenant()`). JSX never calls `useDispatch()` directly.                                                                                                            |
+| **Consistent error handling**                     | All Axios error catches call `getApiErrorMessage(err)` from `src/utils/apiError.ts`. This helper reads `err.response?.data?.error?.message` with a fallback to `err.message`. No raw `catch (e: any)` spread through component code. |
+| **One Zod schema per form**                       | Every create/edit form has exactly one Zod schema in `src/schemas/`. The schema is imported by the page component only — never duplicated.                                                                                           |
+| **Component single responsibility**               | Each component does one thing. `DataTable` renders lists. `ConfirmDialog` confirms destructive actions. Pages compose these components — they do not contain table markup or dialog markup directly.                                 |
+| **Loading + empty + error states always handled** | Every data-fetching hook returns `{ data, loading, error, refetch }`. Every list page handles all three states using `<LoadingSkeleton>`, `<EmptyState>`, and an inline error message.                                               |
 
 #### Backend
 
-| Convention | Rule |
-|-----------|------|
-| **Layered separation** | `router.py` handles HTTP only. `service.py` handles business logic only. `repository.py` handles all DB access. No cross-layer leakage. |
-| **No raw SQL** | All queries go through SQLAlchemy ORM or `session.execute(select(...))`. Never `text()` with user input. |
-| **Consistent response shape** | All list endpoints return `{ "data": [...], "meta": { "total", "page", "page_size" }, "summary": { ... } }`. All error responses return `{ "error": { "code": "...", "message": "..." } }`. No one-off shapes. |
-| **Business rules in service, not router** | Validation like "SKU cannot change" or "product must be active" lives in `service.py`, not as a router dependency. This makes rules testable in isolation. |
-| **Type annotations everywhere** | All function signatures have Python type hints. Pydantic schemas are the boundary between HTTP and domain logic — service layer never receives raw dicts. |
+| Convention                                | Rule                                                                                                                                                                                                           |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Layered separation**                    | `router.py` handles HTTP only. `service.py` handles business logic only. `repository.py` handles all DB access. No cross-layer leakage.                                                                        |
+| **No raw SQL**                            | All queries go through SQLAlchemy ORM or `session.execute(select(...))`. Never `text()` with user input.                                                                                                       |
+| **Consistent response shape**             | All list endpoints return `{ "data": [...], "meta": { "total", "page", "page_size" }, "summary": { ... } }`. All error responses return `{ "error": { "code": "...", "message": "..." } }`. No one-off shapes. |
+| **Business rules in service, not router** | Validation like "SKU cannot change" or "product must be active" lives in `service.py`, not as a router dependency. This makes rules testable in isolation.                                                     |
+| **Type annotations everywhere**           | All function signatures have Python type hints. Pydantic schemas are the boundary between HTTP and domain logic — service layer never receives raw dicts.                                                      |
 
 ---
 
 ## 10. Authentication & Authorization
 
 ### JWT flow
+
 ```
 Login → access_token (15 min, Authorization: Bearer) + refresh_token (7 days, HTTP-only cookie)
 401 → frontend auto-calls /auth/refresh → new token pair
@@ -761,16 +795,17 @@ Logout → refresh token blacklisted in Redis
 
 The system has exactly 2 roles, matching the two actor labels used throughout the requirements:
 
-| Role | Tenants | Products | Inventory | Orders |
-|------|---------|----------|-----------|--------|
-| **Admin** | Full CRUD — sees ALL tenants in the system | Full CRUD within any tenant | Full CRUD within any tenant | Full CRUD within any tenant |
-| **User** | Read-only — sees all tenants by default; if restricted by an Admin (via user-tenant assignment), sees only assigned tenants. Cannot create, edit, or delete tenants. | Full CRUD within accessible tenant | Full CRUD within accessible tenant | Full CRUD within accessible tenant |
+| Role      | Tenants                                                                                                                                                              | Products                           | Inventory                          | Orders                             |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------- | ---------------------------------- |
+| **Admin** | Full CRUD — sees ALL tenants in the system                                                                                                                           | Full CRUD within any tenant        | Full CRUD within any tenant        | Full CRUD within any tenant        |
+| **User**  | Read-only — sees all tenants by default; if restricted by an Admin (via user-tenant assignment), sees only assigned tenants. Cannot create, edit, or delete tenants. | Full CRUD within accessible tenant | Full CRUD within accessible tenant | Full CRUD within accessible tenant |
 
 The key distinction: **only Admins can create, edit, or delete tenant records, and manage user-tenant assignments.** Users interact with products, inventory, and orders scoped to whichever tenants they can access.
 
 ### Tenant middleware (critical path)
 
 On every request to a tenant-scoped endpoint:
+
 1. Decode JWT → get user id + global role
 2. Read `X-Tenant-Id` header
 3. Verify user may access that tenant: **Admin = always allowed**; **User = allowed if they have zero assignments (all-access default) OR if the requested tenant_id is in their `user_tenant_roles` assignment list** → 403 if a restricted user accesses an unassigned tenant
@@ -782,12 +817,14 @@ On every request to a tenant-scoped endpoint:
 ## 11. Security Architecture
 
 ### Network (Nginx)
+
 - TLS 1.3 (Let's Encrypt in prod)
 - Rate limit: 100 req/min auth endpoints, 600 req/min data endpoints
 - Request body limit: 1 MB
 - Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, CSP
 
 ### Application (FastAPI)
+
 - Pydantic validation on every endpoint
 - SQL injection: impossible via SQLAlchemy parameterized queries
 - CORS: whitelist frontend origin only
@@ -796,12 +833,14 @@ On every request to a tenant-scoped endpoint:
 - All secrets in `.env` (never in code)
 
 ### Database (PostgreSQL)
+
 - RLS on all tenant-scoped tables (defense in depth)
 - API DB user: SELECT/INSERT/UPDATE/DELETE only (no DDL)
 - Alembic migrations run under a separate elevated DB role
 - Encrypted at rest in production
 
 ### Auth hardening
+
 - Refresh tokens are single-use (reuse triggers full session revocation)
 - Token blacklist in Redis with TTL matching token expiry
 - Failed login throttle: 5 attempts per email per 15 minutes
@@ -837,6 +876,7 @@ On every request to a tenant-scoped endpoint:
 ```
 
 **`AuthGuard` component** (`src/components/AuthGuard.tsx`):
+
 - Reads `accessToken` from Redux with `useSelector`
 - If `accessToken` is null → `<Navigate to="/login" replace />`
 - If `accessToken` is present → `<Outlet />` (renders child routes)
@@ -853,6 +893,7 @@ store/
 ```
 
 Thin wrapper hooks:
+
 ```typescript
 // hooks/useAuth.ts
 export const useAuth = () => useSelector((state) => state.auth);
@@ -887,19 +928,28 @@ export function useProducts(params: ListParams) {
   useEffect(() => {
     if (!selectedTenantId) return;
     setLoading(true);
-    productsApi.list(params)
-      .then(res => setData(res.data))
-      .catch(err => setError(err.message))
+    productsApi
+      .list(params)
+      .then((res) => setData(res.data))
+      .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [selectedTenantId, params.page, params.sort, params.q]);
 
-  return { data, loading, error, refetch: () => { /* re-trigger */ } };
+  return {
+    data,
+    loading,
+    error,
+    refetch: () => {
+      /* re-trigger */
+    },
+  };
 }
 ```
 
 ### Form validation (react-hook-form + zod)
 
 Zod schemas in `src/schemas/`:
+
 - `tenantSchema.ts` — name required, min 2 chars
 - `productSchema.ts` — sku, name, category enum, cost > 0, reorder ≥ 0
 - `orderSchema.ts` — product_id required, requested_qty > 0
@@ -912,22 +962,22 @@ All forms use `useForm({ resolver: zodResolver(schema) })`. Inline errors render
 
 ### Shared components
 
-| Component | Used on | Purpose |
-|-----------|---------|---------|
-| `<Layout>` | All pages | Sidebar + header + content Outlet |
-| `<AuthGuard>` | All protected routes | Reads Redux `accessToken`; redirects to `/login` if null |
-| `<DataTable>` | All 4 list pages | Search bar, sort dropdown, table, action menus, pagination |
-| `<SummaryTiles>` | All 4 list pages | Configurable stat tile grid |
-| `<DetailHeader>` | Tenant/Product/Inventory/Order detail | Avatar + title + badge + subtitle |
-| `<InfoCardGrid>` | Product/Inventory/Order detail | 4-column info card grid |
-| `<FormCard>` | All edit pages | Centered max-w-3xl form card |
-| `<TenantSelector>` | Product, Inventory, Order list | Dropdown dispatching `setSelectedTenant` to Redux |
-| `<StatusBadge>` | Lists and details | Green/yellow/red pill badges |
-| `<InventoryQuickUpdate>` | Product detail + Inventory detail | Inline number input + Update Stock button |
-| `<ActionMenu>` | All list rows | Three-dot dropdown with View/Edit/Delete |
-| `<ConfirmDialog>` | All delete actions, inventory cascade delete | Modal with title, message, Confirm (red) + Cancel buttons. Accepts `title`, `message`, `onConfirm`, `onCancel`, `isOpen` props |
-| `<LoadingSkeleton>` | All list pages during API load | Animated gray placeholder rows; accepts `rows` count prop |
-| `<EmptyState>` | All list pages when data is empty | Centered icon + heading + subtext + optional action button |
+| Component                | Used on                                      | Purpose                                                                                                                        |
+| ------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `<Layout>`               | All pages                                    | Sidebar + header + content Outlet                                                                                              |
+| `<AuthGuard>`            | All protected routes                         | Reads Redux `accessToken`; redirects to `/login` if null                                                                       |
+| `<DataTable>`            | All 4 list pages                             | Search bar, sort dropdown, table, action menus, pagination                                                                     |
+| `<SummaryTiles>`         | All 4 list pages                             | Configurable stat tile grid                                                                                                    |
+| `<DetailHeader>`         | Tenant/Product/Inventory/Order detail        | Avatar + title + badge + subtitle                                                                                              |
+| `<InfoCardGrid>`         | Product/Inventory/Order detail               | 4-column info card grid                                                                                                        |
+| `<FormCard>`             | All edit pages                               | Centered max-w-3xl form card                                                                                                   |
+| `<TenantSelector>`       | Product, Inventory, Order list               | Dropdown dispatching `setSelectedTenant` to Redux                                                                              |
+| `<StatusBadge>`          | Lists and details                            | Green/yellow/red pill badges                                                                                                   |
+| `<InventoryQuickUpdate>` | Product detail + Inventory detail            | Inline number input + Update Stock button                                                                                      |
+| `<ActionMenu>`           | All list rows                                | Three-dot dropdown with View/Edit/Delete                                                                                       |
+| `<ConfirmDialog>`        | All delete actions, inventory cascade delete | Modal with title, message, Confirm (red) + Cancel buttons. Accepts `title`, `message`, `onConfirm`, `onCancel`, `isOpen` props |
+| `<LoadingSkeleton>`      | All list pages during API load               | Animated gray placeholder rows; accepts `rows` count prop                                                                      |
+| `<EmptyState>`           | All list pages when data is empty            | Centered icon + heading + subtext + optional action button                                                                     |
 
 ---
 
@@ -1191,18 +1241,21 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 1 — Infrastructure Foundation
+
 **Goal**: All services boot with one command.
 
 | Key files | `docker-compose.yml`, `.env.example`, `nginx/nginx.conf` |
-|-----------|---|
+| --------- | -------------------------------------------------------- |
 
 **Build**:
+
 - Docker Compose with 5 services: `nginx`, `api`, `frontend`, `db`, `redis`
 - Nginx config: reverse proxy `api` at `/api/`, `frontend` at `/`
 - `.env.example` with all required variables (DB creds, JWT secrets, Redis password, SEED_ON_STARTUP)
 - Health check stubs (containers start and pass health checks)
 
 **Acceptance criteria**:
+
 - `docker compose up` starts all 5 services without errors
 - `curl http://localhost/health` → nginx proxies to api → 200 (even if api returns a stub)
 - DB and Redis containers are healthy per Docker healthchecks
@@ -1210,12 +1263,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 2 — Database Schema & Seed
+
 **Goal**: Full schema exists in Postgres with RLS, indexes, and realistic demo data.
 
 | Key files | `alembic/versions/0001_initial_schema.py`, `app/database.py`, `app/*/models.py`, `app/seed.py` |
-|-----------|---|
+| --------- | ---------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - Alembic migration creating all 6 tables with all constraints (FK, CHECK, UNIQUE, DEFAULT)
 - All indexes from Section 5
 - RLS policies on `products`, `inventory`, `orders`
@@ -1223,6 +1278,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Seed script: admin user, 2 tenants (TEN-001 active, TEN-002 inactive), 5+ products per tenant, inventory rows (mix of above/below threshold), 5+ orders per tenant (mix of created/pending/cancelled)
 
 **Acceptance criteria**:
+
 - `alembic upgrade head` creates all tables with zero errors
 - `SEED_ON_STARTUP=true` populates realistic data
 - Verify RLS: `SET app.current_tenant_id = '<id>'` then `SELECT * FROM products` returns only that tenant's rows
@@ -1230,12 +1286,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 3 — API Foundation & Middleware
+
 **Goal**: FastAPI app skeleton with all cross-cutting concerns wired up.
 
 | Key files | `app/main.py`, `app/config.py`, `app/middleware/tenant.py`, `app/middleware/logging.py`, `app/middleware/error_handler.py` |
-|-----------|---|
+| --------- | -------------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - FastAPI app factory with CORS (whitelist frontend origin)
 - `GET /health` → `{ "status": "ok", "version": "1.0.0" }`
 - Structured logging middleware (structlog) with correlation IDs per request
@@ -1244,6 +1302,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Pydantic `BaseSettings` loading from `.env`
 
 **Acceptance criteria**:
+
 - `GET /health` → 200
 - Unhandled exception → consistent JSON error (not HTML traceback)
 - Request logs include `request_id`, `method`, `path`, `status_code`, `duration_ms`
@@ -1252,12 +1311,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 4 — Auth System
+
 **Goal**: Stateless JWT auth with real logout via Redis token blacklist.
 
 | Key files | `app/auth/router.py`, `app/auth/service.py`, `app/auth/dependencies.py`, `app/auth/schemas.py`, `app/auth/models.py` |
-|-----------|---|
+| --------- | -------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - `POST /auth/register` → hashes password (bcrypt cost 12), creates user
 - `POST /auth/login` → returns `access_token` (15min JWT) + `refresh_token` (7d, HTTP-only cookie)
 - `POST /auth/refresh` → validates refresh token not blacklisted → issues new token pair + blacklists old refresh token
@@ -1270,6 +1331,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Full tenant middleware: extract `X-Tenant-Id` → verify user may access that tenant (admin = always; user = all-access if zero assignments, else must be in assignment list) → `SET LOCAL app.current_tenant_id`
 
 **Acceptance criteria**:
+
 - Register + login → returns valid JWT pair
 - Access token decoded → correct user claims
 - Refresh → new token pair, old refresh rejected on reuse
@@ -1285,12 +1347,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 5 — Tenant CRUD API + User Management API
+
 **Goal**: Full tenant lifecycle with display IDs and duplicate detection, plus admin-only User Management endpoints.
 
 | Key files | `app/tenants/router.py`, `app/tenants/service.py`, `app/tenants/models.py`, `app/tenants/schemas.py`, `app/users/router.py`, `app/users/service.py`, `app/users/repository.py`, `app/users/schemas.py` |
-|-----------|---|
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 **Build**:
+
 - `GET /api/v1/tenants` → paginated list + summary `{ total, active, inactive }` (admin sees all; user sees all by default, or only assigned tenants if restricted)
 - `POST /api/v1/tenants` → requires `admin` role; creates tenant, auto-generates `TEN-XXX` display ID, status defaults to `active`
 - `GET /api/v1/tenants/:id` → single tenant detail
@@ -1306,6 +1370,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
   - `DELETE /api/v1/users/:id/tenants/:tenant_id` → remove assignment
 
 **Acceptance criteria**:
+
 - Tenant created with correct TEN-XXX format (TEN-001, TEN-002, etc.)
 - Duplicate name → 409 with message "Tenant name already exists"
 - Soft-deleted tenants excluded from list
@@ -1319,12 +1384,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 6 — Product & Inventory CRUD API
+
 **Goal**: Product lifecycle with automatic inventory creation and stock management.
 
 | Key files | `app/products/*`, `app/inventory/*` |
-|-----------|---|
+| --------- | ----------------------------------- |
 
 **Build**:
+
 - **Products**:
   - `GET /api/v1/products` → paginated list + summary `{ total, active, inactive }`, filtered by `X-Tenant-Id` via RLS
   - `POST /api/v1/products` → creates product + auto-creates inventory row (stock=0, unit from request body, default 'units') in one DB transaction
@@ -1338,6 +1405,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
   - `DELETE /api/v1/inventory/:id` → soft-delete inventory + cascades to soft-delete parent product
 
 **Acceptance criteria**:
+
 - Product create → inventory row exists immediately (stock=0)
 - SKU change attempt on edit → 422
 - Inventory list `below_reorder_count` is accurate
@@ -1349,12 +1417,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 7 — Order CRUD & Status Flow API
+
 **Goal**: Complete order lifecycle with inventory deduction, concurrency safety, and all status transitions.
 
 | Key files | `app/orders/router.py`, `app/orders/service.py`, `app/orders/models.py`, `app/orders/schemas.py` |
-|-----------|---|
+| --------- | ------------------------------------------------------------------------------------------------ |
 
 **Build**:
+
 - `GET /api/v1/orders` → paginated list + summary `{ total, pending, created, cancelled }`, RLS-filtered
 - `POST /api/v1/orders`:
   - Validate product is `active` → 400 if inactive
@@ -1380,6 +1450,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
   - Set status = `cancelled`
 
 **Acceptance criteria**:
+
 - Create with sufficient stock → `created` + stock decremented
 - Create with insufficient stock → `pending` + stock unchanged
 - Confirm pending with sufficient stock → `created` + stock decremented
@@ -1395,12 +1466,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 8 — Backend Tests
+
 **Goal**: Verified correctness of all business rules, tenant isolation, and concurrency.
 
 | Key files | `tests/conftest.py`, `tests/test_auth.py`, `tests/test_tenants.py`, `tests/test_products.py`, `tests/test_inventory.py`, `tests/test_orders.py` |
-|-----------|---|
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - Test fixtures: isolated test DB, tenant factory, user factory (with roles), product/inventory/order factories
 - Auth tests: register, login, refresh, logout, throttle, invalid tokens
 - Tenant tests: CRUD, duplicate name, soft-delete, admin vs. user visibility
@@ -1410,6 +1483,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Cross-tenant RLS test: user A cannot access user B's data (explicit verification)
 
 **Acceptance criteria**:
+
 - `pytest` passes with >80% service layer coverage
 - Cross-tenant test: user A's JWT + user B's tenant ID → empty results (not 403)
 - Concurrent confirm test: 2 simultaneous confirms when only 1 unit available → exactly one succeeds, one fails with 409
@@ -1417,12 +1491,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 9 — Frontend Foundation
+
 **Goal**: App boots with correct layout, routing, login/logout flow, and protected route guard.
 
 | Key files | `frontend/package.json`, `vite.config.ts`, `tailwind.config.ts`, `src/main.tsx`, `src/App.tsx`, `src/components/Layout/*`, `src/components/AuthGuard.tsx`, `src/store/*`, `src/api/client.ts`, `src/pages/LoginPage.tsx` |
-|-----------|---|
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 **Build**:
+
 - Vite + React 18 + TypeScript + Tailwind CSS configured
 - `@phosphor-icons/react`, `@reduxjs/toolkit`, `react-redux`, `axios`, `react-router-dom`, `react-hook-form`, `zod`, `sonner` installed
 - Redux store: `authSlice` (user, accessToken) + `tenantSlice` (selectedTenantId, tenants)
@@ -1449,6 +1525,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - `<Toaster />` mounted in `main.tsx`
 
 **Acceptance criteria**:
+
 - `npm run dev` boots without errors
 - Unauthenticated visit to `/tenants` → redirects to `/login`
 - Login with valid credentials → stores token in Redux → navigates to `/tenants`
@@ -1460,12 +1537,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 10 — Shared Component Library
+
 **Goal**: All reusable UI components built and individually verified before pages consume them.
 
 | Key files | `src/components/DataTable.tsx`, `src/components/SummaryTiles.tsx`, `src/components/DetailHeader.tsx`, `src/components/InfoCardGrid.tsx`, `src/components/FormCard.tsx`, `src/components/TenantSelector.tsx`, `src/components/StatusBadge.tsx`, `src/components/InventoryQuickUpdate.tsx`, `src/components/ActionMenu.tsx`, `src/components/ConfirmDialog.tsx`, `src/components/LoadingSkeleton.tsx`, `src/components/EmptyState.tsx`, `src/types/` |
-|-----------|---|
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - `<DataTable>`: renders a table from column definitions + row data; includes search input (configurable placeholder), sort dropdown, pagination ("Showing X to Y of Z results" + prev/page numbers/next), three-dot `<ActionMenu>` per row, row-click handler. Renders `<LoadingSkeleton>` when `loading=true`; renders `<EmptyState>` when `data.length === 0` and not loading.
 - `<SummaryTiles>`: accepts array of tile configs `{ label, value, dotColor, subtitle }`; renders grid-cols-N
 - `<DetailHeader>`: avatar circle + title + `<StatusBadge>` + subtitle line
@@ -1482,6 +1561,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - All status/category values referenced from `utils/constants.ts` — no inline string literals for domain values
 
 **Acceptance criteria**:
+
 - All components render correctly with mock data
 - `<StatusBadge>` shows correct color for all 5 status values
 - `<TenantSelector>` change dispatches to Redux and updates `selectedTenantId`
@@ -1492,12 +1572,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 11 — Tenant, Product & User Management Pages
+
 **Goal**: Fully working Tenant, Product, and User Management modules end-to-end.
 
 | Key files | `src/pages/tenants/*`, `src/pages/products/*`, `src/pages/users/*`, `src/hooks/useTenants.ts`, `src/hooks/useProducts.ts`, `src/hooks/useUsers.ts`, `src/schemas/tenantSchema.ts`, `src/schemas/productSchema.ts`, `src/api/tenants.ts`, `src/api/products.ts`, `src/api/users.ts` |
-|-----------|---|
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - **Tenant pages**:
   - `TenantListPage`: DataTable (TEN-XXX, Name, Status) + 2 summary tiles + search/sort/pagination; row click → `/tenants/:id`; action menu → view/edit/delete
   - `TenantDetailPage`: DetailHeader + 2 info cards (Status, Created Date) + Edit/Delete buttons
@@ -1513,6 +1595,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - After every mutation: call `refetch()` to reload list data
 
 **Acceptance criteria**:
+
 - Tenant list shows TEN-XXX format IDs, correct status badges
 - Create tenant with duplicate name → inline error displayed
 - Product list filters by selected tenant (switching tenant reloads table)
@@ -1528,12 +1611,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 12 — Inventory & Order Pages
+
 **Goal**: Fully working Inventory and Order modules with all business logic visible in the UI.
 
 | Key files | `src/pages/inventory/*`, `src/pages/orders/*`, `src/hooks/useInventory.ts`, `src/hooks/useOrders.ts`, `src/schemas/orderSchema.ts`, `src/api/inventory.ts`, `src/api/orders.ts` |
-|-----------|---|
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 **Build**:
+
 - **Inventory pages**:
   - `InventoryListPage`: DataTable + 1 summary tile (below-reorder count in red) + TenantSelector; **stock color rule**: blue-600 if ≥ threshold, red-600 if < threshold
   - `InventoryDetailPage`: DetailHeader (product name = clickable Link to `/products/:id`) + 4 info cards + Description + InventoryQuickUpdate + **Reset Stock button** (amber-600, opens ConfirmDialog before zeroing stock)
@@ -1551,6 +1636,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
   - `OrderEditPage`: product dropdown (active products only; inactive shown but disabled); qty field disabled when order is `created`; notes always editable; zod validation
 
 **Acceptance criteria**:
+
 - Inventory list: stock in blue-600 when ≥ threshold, red-600 when < threshold
 - Inventory below-reorder tile count is accurate
 - Inventory detail: product name navigates to correct product detail page
@@ -1566,12 +1652,14 @@ Follow these phases in order. Each phase must be fully working before proceeding
 ---
 
 ### Phase 13 — Polish, Empty States & Security Verification
+
 **Goal**: Production-quality UX and verified security posture.
 
 | Key files | All pages + cross-cutting |
-|-----------|---|
+| --------- | ------------------------- |
 
 **Polish**:
+
 - Loading skeleton on every list page during API calls (gray animated placeholder rows instead of blank)
 - Empty state component for every list ("No tenants yet. Create your first one." with a + button) when `data.length === 0` and no search query active
 - Error state when API call fails ("Failed to load data. Retry.")
@@ -1586,6 +1674,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Confirmation dialog before every Delete action
 
 **Security verification**:
+
 - CORS: verify non-whitelisted origin is blocked
 - Rate limiting: verify auth endpoints throttle at 5 attempts
 - RLS: switch tenants in UI → confirm zero cross-tenant data leakage
@@ -1593,6 +1682,7 @@ Follow these phases in order. Each phase must be fully working before proceeding
 - Soft deletes: verify deleted items never appear in any list
 
 **Acceptance criteria**:
+
 - Every list page shows loading skeleton during initial load
 - Every empty list shows an empty state message
 - Every form shows field-level errors for invalid input
@@ -1604,40 +1694,40 @@ Follow these phases in order. Each phase must be fully working before proceeding
 
 ## 17. Wireframe Reference Files — Corrections Applied
 
-| File | Page | Corrections in v5 |
-|------|------|-------------------|
-| `tenant_list.html` | Tenant list | Search placeholder → "Search tenants..." (was "Search products..."); row click + View → `/tenants/:id` |
-| `tenant_edit.html` | Tenant create | Status toggle added to edit mode only |
-| `product_list.html` | Product list | (No corrections needed) |
-| `product_detail.html` | Product detail | (Matches plan exactly) |
-| `product_edit.html` | Product edit | (Matches plan exactly) |
-| `inventory_list.html` | Inventory list | Search placeholder → "Search inventory..." (was "Search products...") |
-| `inventory_detail.html` | Inventory detail | (Product name as link confirmed from wireframe) |
-| `inventory_edit.html` | Inventory edit | (Matches plan) |
-| `order_list.html` | Order list | Search placeholder → "Search orders..." (was "Search products...") |
-| `order_detail.html` | Order detail | Status badge "Active" → correct statuses; Confirm + Cancel buttons added (required by spec, missing from wireframe) |
-| `order_edit.html` | Order create | Qty field disabled when editing a `created` order |
+| File                    | Page             | Corrections in v5                                                                                                   |
+| ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `tenant_list.html`      | Tenant list      | Search placeholder → "Search tenants..." (was "Search products..."); row click + View → `/tenants/:id`              |
+| `tenant_edit.html`      | Tenant create    | Status toggle added to edit mode only                                                                               |
+| `product_list.html`     | Product list     | (No corrections needed)                                                                                             |
+| `product_detail.html`   | Product detail   | (Matches plan exactly)                                                                                              |
+| `product_edit.html`     | Product edit     | (Matches plan exactly)                                                                                              |
+| `inventory_list.html`   | Inventory list   | Search placeholder → "Search inventory..." (was "Search products...")                                               |
+| `inventory_detail.html` | Inventory detail | (Product name as link confirmed from wireframe)                                                                     |
+| `inventory_edit.html`   | Inventory edit   | (Matches plan)                                                                                                      |
+| `order_list.html`       | Order list       | Search placeholder → "Search orders..." (was "Search products...")                                                  |
+| `order_detail.html`     | Order detail     | Status badge "Active" → correct statuses; Confirm + Cancel buttons added (required by spec, missing from wireframe) |
+| `order_edit.html`       | Order create     | Qty field disabled when editing a `created` order                                                                   |
 
 ---
 
 ## 18. v5 Delta Summary (changes from v4)
 
-| # | Change | Rationale |
-|---|--------|-----------|
-| 1 | Redux Toolkit re-introduced (replaces React Context) | Requirements explicitly list Redux. RTK has minimal boilerplate (~60 lines for 2 slices). Demonstrates Redux competency expected by evaluators. |
-| 2 | Tenant Detail page added (`/tenants/:id`, `TenantDetailPage.tsx`) | "View" action in tenant action menu requires a destination; no-op creates broken UX. Simple detail page satisfies this cleanly. |
-| 3 | Order edit business rule clarified | Editing quantity on a `created` order (stock already deducted) creates stock inconsistency. Rule: `created` orders → notes-only edit; `pending` orders → qty + notes edit. |
-| 4 | Inventory delete cascades to parent product | Inventory is 1:1 with product. Deleting inventory directly creates an orphaned product in invalid state. Delete cascade with confirmation dialog is the correct behavior. |
-| 5 | 12 phases → 13 phases | Auth API extracted to its own phase (Phase 4); Tenant + Product pages split from Inventory + Order pages (phases 11/12). Each phase is now a more manageable, coherent unit. |
-| 6 | Project structure: `contexts/` → `store/` | Reflects RTK architecture. `authSlice.ts` + `tenantSlice.ts` replace `AuthContext.tsx` + `TenantContext.tsx`. |
-| 7 | `inventory.current_stock` CHECK ≥ 0 added | Stock cannot go negative. API should also enforce this (`PATCH` with `current_stock < 0` → 422). |
-| 8 | Explicit "Decisions & Assumptions" section added | Documents all tech stack choices and ambiguity resolutions for the interview discussion. |
-| 9 | **Header logout dropdown added** | User avatar in header is now an interactive dropdown showing user name/email + Logout button. Logout dispatches `clearCredentials`, calls `POST /auth/logout`, and navigates to `/login`. |
-| 10 | **`AuthGuard` component added** | Explicit route guard component wrapping all protected routes. Reads `accessToken` from Redux; redirects to `/login` if null. Validates token via `GET /auth/me` on app startup. Keeps `Layout.tsx` free of auth logic. |
-| 11 | **Repository layer added to all backend modules** | Each module now has `router.py` → `service.py` → `repository.py` → `models.py`, satisfying the evaluation criterion "Routes → Controllers → Services → Repositories". Service layer contains zero SQLAlchemy code. |
-| 12 | **`src/types/` directory added** | Centralises all TypeScript interfaces for API responses, entity shapes, and input types. Eliminates `any` types and ensures all hooks, API modules, and components share consistent type definitions. |
-| 13 | **`ConfirmDialog`, `LoadingSkeleton`, `EmptyState` promoted to Phase 10** | These components were mentioned in Phase 13 polish but not formally defined. Moving them to the shared component library phase ensures they are available when entity pages are built in Phases 11/12. |
-| 14 | **Code Quality Conventions section added** | Explicit list of enforced patterns (no magic strings, no `any`, layered separation, consistent error handling) so Cursor and developers follow the same standards throughout implementation. |
-| 15 | **`utils/apiError.ts` added** | Single helper for extracting readable messages from Axios errors. Eliminates scattered `catch (e: any)` patterns with inconsistent error extraction. |
-| 16 | **4-role RBAC → 2-role RBAC (Admin / User)** | Requirements user stories use exactly two actor labels: "Admin" (tenant management, User Stories 1.1–1.2) and "User" (products, inventory, orders, User Stories 2.x–4.x). The prior 4-role model (Superadmin, Admin, Manager, Viewer) was over-engineered. Simplified to Admin (full CRUD on all entities, sees all tenants) and User (full CRUD on products/inventory/orders within accessible tenants, cannot manage tenants). `is_superadmin` column removed from `users` table. `require_role(min_role)` replaced with `require_admin()` on tenant write endpoints. |
-| 17 | **User Management + optional tenant assignment added** | Requirements do not specify any user-tenant restriction. Default behaviour: all users see all tenants. Added Admin-only User Management pages so Admins can optionally restrict specific users to specific tenants. A user with zero rows in `user_tenant_roles` retains all-access; a user with assignments sees only those tenants. `app/users/` module added (router, service, repository, schemas). `UserListPage` and `UserDetailPage` added (admin-only). `useUsers.ts`, `api/users.ts`, `types/user.ts` added. Documented as Assumptions #11 and #12. Raise at the interview. |
+| #   | Change                                                                    | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Redux Toolkit re-introduced (replaces React Context)                      | Requirements explicitly list Redux. RTK has minimal boilerplate (~60 lines for 2 slices). Demonstrates Redux competency expected by evaluators.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 2   | Tenant Detail page added (`/tenants/:id`, `TenantDetailPage.tsx`)         | "View" action in tenant action menu requires a destination; no-op creates broken UX. Simple detail page satisfies this cleanly.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 3   | Order edit business rule clarified                                        | Editing quantity on a `created` order (stock already deducted) creates stock inconsistency. Rule: `created` orders → notes-only edit; `pending` orders → qty + notes edit.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 4   | Inventory delete cascades to parent product                               | Inventory is 1:1 with product. Deleting inventory directly creates an orphaned product in invalid state. Delete cascade with confirmation dialog is the correct behavior.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 5   | 12 phases → 13 phases                                                     | Auth API extracted to its own phase (Phase 4); Tenant + Product pages split from Inventory + Order pages (phases 11/12). Each phase is now a more manageable, coherent unit.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 6   | Project structure: `contexts/` → `store/`                                 | Reflects RTK architecture. `authSlice.ts` + `tenantSlice.ts` replace `AuthContext.tsx` + `TenantContext.tsx`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 7   | `inventory.current_stock` CHECK ≥ 0 added                                 | Stock cannot go negative. API should also enforce this (`PATCH` with `current_stock < 0` → 422).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 8   | Explicit "Decisions & Assumptions" section added                          | Documents all tech stack choices and ambiguity resolutions for the interview discussion.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 9   | **Header logout dropdown added**                                          | User avatar in header is now an interactive dropdown showing user name/email + Logout button. Logout dispatches `clearCredentials`, calls `POST /auth/logout`, and navigates to `/login`.                                                                                                                                                                                                                                                                                                                                                                                            |
+| 10  | **`AuthGuard` component added**                                           | Explicit route guard component wrapping all protected routes. Reads `accessToken` from Redux; redirects to `/login` if null. Validates token via `GET /auth/me` on app startup. Keeps `Layout.tsx` free of auth logic.                                                                                                                                                                                                                                                                                                                                                               |
+| 11  | **Repository layer added to all backend modules**                         | Each module now has `router.py` → `service.py` → `repository.py` → `models.py`, satisfying the evaluation criterion "Routes → Controllers → Services → Repositories". Service layer contains zero SQLAlchemy code.                                                                                                                                                                                                                                                                                                                                                                   |
+| 12  | **`src/types/` directory added**                                          | Centralises all TypeScript interfaces for API responses, entity shapes, and input types. Eliminates `any` types and ensures all hooks, API modules, and components share consistent type definitions.                                                                                                                                                                                                                                                                                                                                                                                |
+| 13  | **`ConfirmDialog`, `LoadingSkeleton`, `EmptyState` promoted to Phase 10** | These components were mentioned in Phase 13 polish but not formally defined. Moving them to the shared component library phase ensures they are available when entity pages are built in Phases 11/12.                                                                                                                                                                                                                                                                                                                                                                               |
+| 14  | **Code Quality Conventions section added**                                | Explicit list of enforced patterns (no magic strings, no `any`, layered separation, consistent error handling) so Cursor and developers follow the same standards throughout implementation.                                                                                                                                                                                                                                                                                                                                                                                         |
+| 15  | **`utils/apiError.ts` added**                                             | Single helper for extracting readable messages from Axios errors. Eliminates scattered `catch (e: any)` patterns with inconsistent error extraction.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 16  | **4-role RBAC → 2-role RBAC (Admin / User)**                              | Requirements user stories use exactly two actor labels: "Admin" (tenant management, User Stories 1.1–1.2) and "User" (products, inventory, orders, User Stories 2.x–4.x). The prior 4-role model (Superadmin, Admin, Manager, Viewer) was over-engineered. Simplified to Admin (full CRUD on all entities, sees all tenants) and User (full CRUD on products/inventory/orders within accessible tenants, cannot manage tenants). `is_superadmin` column removed from `users` table. `require_role(min_role)` replaced with `require_admin()` on tenant write endpoints.              |
+| 17  | **User Management + optional tenant assignment added**                    | Requirements do not specify any user-tenant restriction. Default behaviour: all users see all tenants. Added Admin-only User Management pages so Admins can optionally restrict specific users to specific tenants. A user with zero rows in `user_tenant_roles` retains all-access; a user with assignments sees only those tenants. `app/users/` module added (router, service, repository, schemas). `UserListPage` and `UserDetailPage` added (admin-only). `useUsers.ts`, `api/users.ts`, `types/user.ts` added. Documented as Assumptions #11 and #12. Raise at the interview. |
