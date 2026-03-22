@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.models import User
+from app.auth.models import User, UserInvite
 from app.auth.repository import UserRepository
 from app.config import get_settings
 
@@ -125,13 +125,114 @@ class AuthService:
     async def login(self, email: str, password: str) -> tuple[str, str]:
         await self.check_rate_limit(email)
         user = await self.repo.get_by_email(email)
-        if not user or not self.verify_password(password, user.password_hash):
+        if (
+            not user
+            or user.password_hash is None
+            or not self.verify_password(password, user.password_hash)
+        ):
             await self.record_failed_attempt(email)
             raise ValueError("Invalid email or password.")
         await self.clear_attempts(email)
         access_token = self.create_access_token(user.id, user.role)
         refresh_token = self.create_refresh_token(user.id)
         return access_token, refresh_token
+
+    def issue_token_pair(self, user: User) -> tuple[str, str]:
+        return self.create_access_token(user.id, user.role), self.create_refresh_token(user.id)
+
+    async def process_google_oauth_login(self, google_sub: str, email: str, name: str) -> User:
+        """Sign-in from the main login page: existing user, or new user with a valid pending invite."""
+        from app.auth.invite_repository import UserInviteRepository
+
+        email_norm = email.strip().lower()
+
+        existing_sub = await self.repo.get_by_google_sub(google_sub)
+        if existing_sub:
+            await self.clear_attempts(existing_sub.email)
+            return existing_sub
+
+        by_email = await self.repo.get_by_email(email_norm)
+        if by_email:
+            if by_email.google_sub and by_email.google_sub != google_sub:
+                raise ValueError("This email is already linked to a different Google account.")
+            if by_email.google_sub is None:
+                by_email.google_sub = google_sub
+                await self.session.flush()
+            await self.session.commit()
+            await self.session.refresh(by_email)
+            await self.clear_attempts(by_email.email)
+            return by_email
+
+        inv_repo = UserInviteRepository(self.session)
+        inv = await inv_repo.get_any_valid_pending_for_email(email_norm)
+        if not inv:
+            raise ValueError("login_not_allowed")
+
+        display_name = (name or "").strip() or email_norm.split("@")[0]
+        user = await self.repo.create(
+            email=inv.email.strip().lower(),
+            password_hash=None,
+            role="user",
+            name=display_name,
+            google_sub=google_sub,
+        )
+        await inv_repo.consume(inv)
+        await self.session.commit()
+        await self.session.refresh(user)
+        await self.clear_attempts(user.email)
+        return user
+
+    async def process_google_oauth_invite(
+        self, google_sub: str, email: str, name: str, inv: UserInvite
+    ) -> User:
+        """Complete registration from an invitation link using Google (email must match invite)."""
+        from app.auth.invite_repository import UserInviteRepository
+
+        inv_repo = UserInviteRepository(self.session)
+        email_norm = email.strip().lower()
+        inv_email_norm = inv.email.strip().lower()
+        if email_norm != inv_email_norm:
+            raise ValueError("invite_email_mismatch")
+
+        if not inv_repo.invite_still_valid(inv):
+            raise ValueError("Invalid or expired invitation.")
+
+        existing_sub = await self.repo.get_by_google_sub(google_sub)
+        if existing_sub:
+            if existing_sub.email.strip().lower() != inv_email_norm:
+                raise ValueError("invite_email_mismatch")
+            await inv_repo.consume(inv)
+            await self.session.commit()
+            await self.session.refresh(existing_sub)
+            await self.clear_attempts(existing_sub.email)
+            return existing_sub
+
+        by_email = await self.repo.get_by_email(inv_email_norm)
+        if by_email:
+            if by_email.google_sub and by_email.google_sub != google_sub:
+                raise ValueError("This email is already linked to a different Google account.")
+            if by_email.google_sub is None:
+                by_email.google_sub = google_sub
+                await self.session.flush()
+            await inv_repo.consume(inv)
+            await self.session.commit()
+            await self.session.refresh(by_email)
+            await self.clear_attempts(by_email.email)
+            return by_email
+
+        display_name = (name or "").strip() or inv_email_norm.split("@")[0]
+        user = await self.repo.create(
+            email=inv_email_norm,
+            password_hash=None,
+            role="user",
+            name=display_name,
+            google_sub=google_sub,
+        )
+        await inv_repo.consume(inv)
+        await self.session.commit()
+        await self.session.refresh(user)
+        await self.clear_attempts(user.email)
+        return user
 
     async def refresh(self, refresh_token: str) -> tuple[str, str]:
         if await self.is_blacklisted(refresh_token):

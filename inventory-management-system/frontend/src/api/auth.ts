@@ -3,6 +3,18 @@ import type { User, LoginRequest } from '@/types/auth';
 import type { Tenant } from '@/types/tenant';
 
 export const authApi = {
+  googleOAuthStatus: async (): Promise<{ enabled: boolean }> => {
+    const res = await apiClient.get('/auth/google/status');
+    return res.data;
+  },
+
+  completeGoogleOAuth: async (
+    code: string,
+  ): Promise<{ access_token: string; token_type: string; refresh_token: string }> => {
+    const res = await apiClient.post('/auth/google/complete', { code });
+    return res.data;
+  },
+
   login: async (data: LoginRequest): Promise<{ access_token: string; token_type: string }> => {
     const res = await apiClient.post('/auth/login', data);
     return res.data;

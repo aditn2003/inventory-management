@@ -33,13 +33,31 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = [];
 }
 
+/** 401 on these routes means bad credentials / validation — not an expired access token. */
+function isCredentialAuth401Request(config: InternalAxiosRequestConfig | undefined): boolean {
+  const url = config?.url ?? '';
+  if (url.includes('/auth/login')) return true;
+  if (url.includes('/auth/register-invite')) return true;
+  // Avoid matching .../register-invite via a lone "/auth/register" check
+  if (url.includes('/auth/register') && !url.includes('register-invite')) return true;
+  if (url.includes('/auth/google/complete')) return true;
+  return false;
+}
+
 // Response interceptor — silent refresh on 401
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isCredentialAuth401Request(originalRequest)) {
+        return Promise.reject(error);
+      }
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

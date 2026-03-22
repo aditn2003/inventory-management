@@ -8,6 +8,7 @@ import { authApi } from '@/api/auth';
 import { Layout } from '@/components/Layout/Layout';
 import { AuthGuard } from '@/components/AuthGuard';
 import { LoginPage } from '@/pages/LoginPage';
+import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage';
 import { RegisterInvitePage } from '@/pages/RegisterInvitePage';
 
 // Tenant pages
@@ -41,6 +42,11 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (window.location.pathname === '/auth/oauth-callback') {
+      setReady(true);
+      return;
+    }
+
     const state = store.getState();
     const token = state.auth.accessToken;
 
@@ -77,6 +83,7 @@ function AppRoutes() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/oauth-callback" element={<OAuthCallbackPage />} />
         <Route path="/register/invite" element={<RegisterInvitePage />} />
 
         {/* Protected routes */}
