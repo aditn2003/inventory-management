@@ -1,3 +1,5 @@
+"""Admin-focused queries: user list with assignment counts, role updates, tenant links."""
+
 from typing import Optional
 from uuid import UUID
 
@@ -9,11 +11,15 @@ from app.tenants.models import Tenant
 
 
 class UserManagementRepository:
+    """Lists users and mutates roles / tenant assignments (admin flows)."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def list_users(self, page: int, page_size: int) -> tuple[list, int]:
-        count_result = await self.session.execute(select(func.count()).select_from(User))
+        count_result = await self.session.execute(
+            select(func.count()).select_from(User)
+        )
         total = count_result.scalar_one()
 
         result = await self.session.execute(
@@ -27,16 +33,20 @@ class UserManagementRepository:
         user_items = []
         for user in users:
             count_res = await self.session.execute(
-                select(func.count()).select_from(UserTenantRole).where(UserTenantRole.user_id == user.id)
+                select(func.count())
+                .select_from(UserTenantRole)
+                .where(UserTenantRole.user_id == user.id)
             )
             assigned_count = count_res.scalar_one()
-            user_items.append({
-                "id": user.id,
-                "name": (user.name or "").strip(),
-                "role": user.role,
-                "assigned_tenant_count": assigned_count,
-                "created_at": user.created_at,
-            })
+            user_items.append(
+                {
+                    "id": user.id,
+                    "name": (user.name or "").strip(),
+                    "role": user.role,
+                    "assigned_tenant_count": assigned_count,
+                    "created_at": user.created_at,
+                }
+            )
         return user_items, total
 
     async def get_user_by_id(self, user_id: UUID) -> Optional[User]:
@@ -57,7 +67,9 @@ class UserManagementRepository:
         return user
 
     async def hard_delete_user(self, user: User) -> None:
-        await self.session.execute(delete(UserTenantRole).where(UserTenantRole.user_id == user.id))
+        await self.session.execute(
+            delete(UserTenantRole).where(UserTenantRole.user_id == user.id)
+        )
         await self.session.delete(user)
         await self.session.flush()
 
@@ -68,5 +80,7 @@ class UserManagementRepository:
         return assignment
 
     async def delete_all_assignments_for_user(self, user_id: UUID) -> None:
-        await self.session.execute(delete(UserTenantRole).where(UserTenantRole.user_id == user_id))
+        await self.session.execute(
+            delete(UserTenantRole).where(UserTenantRole.user_id == user_id)
+        )
         await self.session.flush()

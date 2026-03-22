@@ -1,3 +1,5 @@
+"""Request logging: correlation ID per request, structlog context, ``X-Correlation-Id`` response header."""
+
 import uuid
 from typing import Any
 
@@ -10,6 +12,8 @@ logger = structlog.get_logger()
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    """Binds correlation ID and request metadata for structured logs."""
+
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         correlation_id = str(uuid.uuid4())
         request.state.correlation_id = correlation_id

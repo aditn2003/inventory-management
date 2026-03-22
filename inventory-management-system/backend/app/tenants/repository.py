@@ -1,3 +1,5 @@
+"""Tenant rows: CRUD, search, sort, admin visibility rules."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -14,6 +16,8 @@ TenantSortDir = Literal["asc", "desc"]
 
 
 class TenantRepository:
+    """Persistence for ``Tenant`` and related list queries."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -75,7 +79,9 @@ class TenantRepository:
         return result.scalars().all(), total
 
     async def get_by_id(self, tenant_id: UUID) -> Optional[Tenant]:
-        result = await self.session.execute(select(Tenant).where(Tenant.id == tenant_id))
+        result = await self.session.execute(
+            select(Tenant).where(Tenant.id == tenant_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_name(self, name: str) -> Optional[Tenant]:
@@ -105,6 +111,8 @@ class TenantRepository:
         tid = tenant.id
         await self.session.execute(delete(Order).where(Order.tenant_id == tid))
         await self.session.execute(delete(Product).where(Product.tenant_id == tid))
-        await self.session.execute(delete(UserTenantRole).where(UserTenantRole.tenant_id == tid))
+        await self.session.execute(
+            delete(UserTenantRole).where(UserTenantRole.tenant_id == tid)
+        )
         await self.session.delete(tenant)
         await self.session.flush()

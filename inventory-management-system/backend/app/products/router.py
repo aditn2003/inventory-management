@@ -1,3 +1,5 @@
+"""Product API (tenant-scoped). Mounted at ``/api/v1/products``."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -16,7 +18,9 @@ from app.products.service import ProductService
 
 router = APIRouter()
 
-ProductSortBy = Literal["sku", "name", "category", "cost_per_unit", "current_stock", "status", "created_at"]
+ProductSortBy = Literal[
+    "sku", "name", "category", "cost_per_unit", "current_stock", "status", "created_at"
+]
 ProductSortDir = Literal["asc", "desc"]
 
 
@@ -84,7 +88,9 @@ async def update_product(
     try:
         return await svc.update_product(product_id, tenant_id, body.model_dump())
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)

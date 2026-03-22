@@ -114,6 +114,8 @@ inventory-management-system/
 └── docker-compose.yml       # nginx, api, frontend, db, redis
 ```
 
+**Backend source layout:** Each domain under `app/<name>/` usually has `router.py` (HTTP), `service.py` (business rules), `repository.py` (SQLAlchemy), `schemas.py` (request/response models), and `models.py` (ORM). File-level docstrings describe what belongs in that module.
+
 ---
 
 ## Technology stack

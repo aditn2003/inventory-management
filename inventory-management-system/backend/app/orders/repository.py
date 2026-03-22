@@ -1,3 +1,5 @@
+"""Orders with product/inventory joins, status counts, and stock checks."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -21,10 +23,14 @@ OrderSortDir = Literal["asc", "desc"]
 
 
 class OrderRepository:
+    """Tenant-scoped orders and locked inventory reads for confirm flows."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    def _needs_product_join(self, q: Optional[str], sort_by: Optional[OrderSortBy]) -> bool:
+    def _needs_product_join(
+        self, q: Optional[str], sort_by: Optional[OrderSortBy]
+    ) -> bool:
         return bool(q) or sort_by == "product_name"
 
     def _default_order(self):
@@ -39,16 +45,24 @@ class OrderRepository:
             return (ln.desc(), Product.name.desc()) + id_tie
         if sort_by == "display_id":
             col = Order.display_id
-            return (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            return (
+                (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            )
         if sort_by == "requested_qty":
             col = Order.requested_qty
-            return (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            return (
+                (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            )
         if sort_by == "status":
             col = Order.status
-            return (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            return (
+                (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            )
         if sort_by == "order_date":
             col = Order.order_date
-            return (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            return (
+                (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
+            )
         col = Order.created_at
         return (col.asc(),) + id_tie if sort_dir == "asc" else (col.desc(),) + id_tie
 
@@ -64,7 +78,11 @@ class OrderRepository:
     ) -> tuple[list[Order], int]:
         needs_join = self._needs_product_join(q, sort_by)
 
-        count_q = select(func.count(Order.id)).select_from(Order).where(Order.tenant_id == tenant_id)
+        count_q = (
+            select(func.count(Order.id))
+            .select_from(Order)
+            .where(Order.tenant_id == tenant_id)
+        )
         if needs_join:
             count_q = count_q.join(Product, Product.id == Order.product_id)
         if q:
@@ -97,9 +115,9 @@ class OrderRepository:
 
     async def count_by_status(self, tenant_id: UUID, status: str) -> int:
         result = await self.session.execute(
-            select(func.count()).select_from(Order).where(
-                Order.tenant_id == tenant_id, Order.status == status
-            )
+            select(func.count())
+            .select_from(Order)
+            .where(Order.tenant_id == tenant_id, Order.status == status)
         )
         return result.scalar_one()
 
@@ -137,6 +155,8 @@ class OrderRepository:
     async def get_inventory_for_update(self, product_id: UUID) -> Optional[Inventory]:
         """Acquire SELECT FOR UPDATE lock on inventory row."""
         result = await self.session.execute(
-            select(Inventory).where(Inventory.product_id == product_id).with_for_update()
+            select(Inventory)
+            .where(Inventory.product_id == product_id)
+            .with_for_update()
         )
         return result.scalar_one_or_none()

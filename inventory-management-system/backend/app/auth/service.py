@@ -21,6 +21,8 @@ LOCKOUT_SECONDS = 300  # 5 minutes
 
 
 class AuthService:
+    """Login, registration, JWT issue/validation, Redis blacklist and rate limits, invites, Google OAuth."""
+
     def __init__(self, session: AsyncSession, redis_client: aioredis.Redis) -> None:
         self.session = session
         self.redis = redis_client
@@ -37,17 +39,27 @@ class AuthService:
     # ── Tokens ─────────────────────────────────────────────────────────────
 
     def create_access_token(self, user_id: UUID, role: str) -> str:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
         payload = {"sub": str(user_id), "role": role, "exp": expire, "type": "access"}
-        return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        return jwt.encode(
+            payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
+        )
 
     def create_refresh_token(self, user_id: UUID) -> str:
-        expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+        expire = datetime.now(timezone.utc) + timedelta(
+            days=settings.refresh_token_expire_days
+        )
         payload = {"sub": str(user_id), "exp": expire, "type": "refresh"}
-        return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+        return jwt.encode(
+            payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
+        )
 
     def decode_token(self, token: str) -> dict:
-        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(
+            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+        )
 
     # ── Redis blacklist ────────────────────────────────────────────────────
 
@@ -137,9 +149,13 @@ class AuthService:
         return access_token, refresh_token
 
     def issue_token_pair(self, user: User) -> tuple[str, str]:
-        return self.create_access_token(user.id, user.role), self.create_refresh_token(user.id)
+        return self.create_access_token(user.id, user.role), self.create_refresh_token(
+            user.id
+        )
 
-    async def process_google_oauth_login(self, google_sub: str, email: str, name: str) -> User:
+    async def process_google_oauth_login(
+        self, google_sub: str, email: str, name: str
+    ) -> User:
         """Sign-in from the main login page: existing user, or new user with a valid pending invite."""
         from app.auth.invite_repository import UserInviteRepository
 
@@ -153,7 +169,9 @@ class AuthService:
         by_email = await self.repo.get_by_email(email_norm)
         if by_email:
             if by_email.google_sub and by_email.google_sub != google_sub:
-                raise ValueError("This email is already linked to a different Google account.")
+                raise ValueError(
+                    "This email is already linked to a different Google account."
+                )
             if by_email.google_sub is None:
                 by_email.google_sub = google_sub
                 await self.session.flush()
@@ -209,7 +227,9 @@ class AuthService:
         by_email = await self.repo.get_by_email(inv_email_norm)
         if by_email:
             if by_email.google_sub and by_email.google_sub != google_sub:
-                raise ValueError("This email is already linked to a different Google account.")
+                raise ValueError(
+                    "This email is already linked to a different Google account."
+                )
             if by_email.google_sub is None:
                 by_email.google_sub = google_sub
                 await self.session.flush()

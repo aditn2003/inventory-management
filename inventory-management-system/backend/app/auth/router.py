@@ -1,3 +1,5 @@
+"""HTTP routes for auth: login/register/refresh, invites, Google OAuth. Mounted at ``/api/v1/auth``."""
+
 import json
 import secrets
 from typing import Annotated
@@ -14,7 +16,11 @@ from app.auth.dependencies import get_current_user, get_redis
 from app.auth.models import User
 from app.auth.repository import UserRepository
 from app.auth.invite_repository import UserInviteRepository, hash_invite_token
-from app.auth.oauth_google import build_authorize_url, exchange_code_for_tokens, fetch_userinfo
+from app.auth.oauth_google import (
+    build_authorize_url,
+    exchange_code_for_tokens,
+    fetch_userinfo,
+)
 from app.auth.schemas import (
     GoogleOAuthCompleteRequest,
     GoogleOAuthTokenResponse,
@@ -40,15 +46,20 @@ OAUTH_COMPLETE_TTL_SEC = 120
 
 
 def _frontend_oauth_redirect(query: dict[str, str]) -> RedirectResponse:
+    """Redirect browser to the SPA OAuth callback with query parameters."""
     settings = get_settings()
     base = settings.public_app_url.rstrip("/")
-    return RedirectResponse(url=f"{base}/auth/oauth-callback?{urlencode(query)}", status_code=302)
+    return RedirectResponse(
+        url=f"{base}/auth/oauth-callback?{urlencode(query)}", status_code=302
+    )
 
 
 @router.get("/google/status")
 async def google_oauth_status() -> dict:
     s = get_settings()
-    enabled = bool(s.google_oauth_client_id.strip() and s.google_oauth_client_secret.strip())
+    enabled = bool(
+        s.google_oauth_client_id.strip() and s.google_oauth_client_secret.strip()
+    )
     return {"enabled": enabled}
 
 
@@ -59,7 +70,10 @@ async def google_oauth_start(
     invite_token: str | None = Query(None, min_length=20, max_length=2048),
 ) -> RedirectResponse:
     settings = get_settings()
-    if not settings.google_oauth_client_id.strip() or not settings.google_oauth_client_secret.strip():
+    if (
+        not settings.google_oauth_client_id.strip()
+        or not settings.google_oauth_client_secret.strip()
+    ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Google sign-in is not configured.",
@@ -149,7 +163,9 @@ async def google_oauth_callback(
             if not invite_token:
                 return _frontend_oauth_redirect({"oauth_error": "missing_invite"})
             inv_repo = UserInviteRepository(session)
-            inv = await inv_repo.get_valid_by_token_hash(hash_invite_token(invite_token))
+            inv = await inv_repo.get_valid_by_token_hash(
+                hash_invite_token(invite_token)
+            )
             if not inv:
                 return _frontend_oauth_redirect({"oauth_error": "invalid_invite"})
             user = await svc.process_google_oauth_invite(google_sub, email, name, inv)
@@ -177,13 +193,18 @@ async def google_oauth_complete(
     key = OAUTH_COMPLETE_KEY.format(code=body.code)
     user_id_str = await redis_client.get(key)
     if not user_id_str:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired sign-in code.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired sign-in code.",
+        )
     await redis_client.delete(key)
 
     repo = UserRepository(session)
     user = await repo.get_by_id(UUID(user_id_str))
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+        )
 
     svc = AuthService(session, redis_client)
     access_token, refresh_token = svc.issue_token_pair(user)
@@ -203,7 +224,9 @@ async def google_oauth_complete(
     )
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     body: RegisterRequest,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -232,7 +255,9 @@ async def invite_preview(
     return InvitePreviewResponse(email=inv.email)
 
 
-@router.post("/register-invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register-invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register_with_invite(
     body: RegisterWithInviteRequest,
     session: Annotated[AsyncSession, Depends(get_db)],

@@ -1,3 +1,5 @@
+"""Environment-backed settings (``.env`` / process env) via Pydantic."""
+
 from functools import lru_cache
 from typing import Literal
 
@@ -5,8 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Application configuration loaded from environment (see ``.env.example``)."""
+
     # utf-8-sig: Windows editors often save .env with BOM; without this, the first key may not load.
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8-sig", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8-sig", extra="ignore"
+    )
 
     # Database
     database_url: str
@@ -52,4 +58,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Cached singleton ``Settings`` instance (process lifetime)."""
     return Settings()

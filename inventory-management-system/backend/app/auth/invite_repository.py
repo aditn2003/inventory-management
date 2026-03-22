@@ -59,7 +59,9 @@ class UserInviteRepository:
         return inv
 
     async def get_valid_by_token_hash(self, token_hash: str) -> UserInvite | None:
-        result = await self.session.execute(select(UserInvite).where(UserInvite.token_hash == token_hash))
+        result = await self.session.execute(
+            select(UserInvite).where(UserInvite.token_hash == token_hash)
+        )
         inv = result.scalar_one_or_none()
         if not inv or not self.invite_still_valid(inv):
             return None

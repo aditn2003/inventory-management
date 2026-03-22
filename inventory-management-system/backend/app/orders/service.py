@@ -1,3 +1,5 @@
+"""Order lifecycle: create from stock rules, confirm (deduct), cancel, delete (restore if confirmed)."""
+
 from datetime import date
 from typing import Optional
 from uuid import UUID
@@ -9,6 +11,8 @@ from app.products.repository import ProductRepository
 
 
 class OrderService:
+    """Tenant-scoped orders and inventory side effects on confirm/delete."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repo = OrderRepository(session)
@@ -88,14 +92,26 @@ class OrderService:
         await self.session.commit()
         return await self.repo.get_by_id(order.id, tenant_id)
 
-    async def update_order(self, order_id: UUID, tenant_id: UUID, requested_qty: Optional[int], notes: Optional[str]):
+    async def update_order(
+        self,
+        order_id: UUID,
+        tenant_id: UUID,
+        requested_qty: Optional[int],
+        notes: Optional[str],
+    ):
         order = await self.get_order(order_id, tenant_id)
 
         if order.status == "cancelled":
             raise ValueError("Cancelled orders cannot be edited.")
 
-        if order.status == "confirmed" and requested_qty is not None and requested_qty != order.requested_qty:
-            raise ValueError("Quantity cannot be changed on a confirmed order. Only notes can be updated.")
+        if (
+            order.status == "confirmed"
+            and requested_qty is not None
+            and requested_qty != order.requested_qty
+        ):
+            raise ValueError(
+                "Quantity cannot be changed on a confirmed order. Only notes can be updated."
+            )
 
         updates = {}
         if notes is not None:

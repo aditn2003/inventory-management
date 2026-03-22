@@ -1,3 +1,5 @@
+"""Tenant admin API. Mounted at ``/api/v1/tenants``."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -7,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import require_admin
 from app.auth.models import User
 from app.database import get_db
-from app.tenants.schemas import TenantCreate, TenantListResponse, TenantResponse, TenantUpdate
+from app.tenants.schemas import (
+    TenantCreate,
+    TenantListResponse,
+    TenantResponse,
+    TenantUpdate,
+)
 from app.tenants.service import TenantService
 
 router = APIRouter()

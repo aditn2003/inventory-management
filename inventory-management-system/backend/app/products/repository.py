@@ -1,3 +1,5 @@
+"""Product queries: list, sort, joins to inventory for list/detail."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -9,11 +11,15 @@ from app.inventory.models import Inventory
 from app.orders.models import Order
 from app.products.models import Product
 
-ProductSortBy = Literal["sku", "name", "category", "cost_per_unit", "current_stock", "status", "created_at"]
+ProductSortBy = Literal[
+    "sku", "name", "category", "cost_per_unit", "current_stock", "status", "created_at"
+]
 ProductSortDir = Literal["asc", "desc"]
 
 
 class ProductRepository:
+    """Tenant-scoped product persistence and aggregates for list summaries."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -54,7 +60,11 @@ class ProductRepository:
             return (lst.desc(), Product.status.desc(), Product.id.asc())
         # created_at
         col = Product.created_at
-        return (col.asc(), Product.id.asc()) if sort_dir == "asc" else (col.desc(), Product.id.asc())
+        return (
+            (col.asc(), Product.id.asc())
+            if sort_dir == "asc"
+            else (col.desc(), Product.id.asc())
+        )
 
     async def list(
         self,
@@ -93,15 +103,17 @@ class ProductRepository:
 
     async def count_by_status(self, tenant_id: UUID, status: str) -> int:
         result = await self.session.execute(
-            select(func.count()).select_from(Product).where(
-                Product.tenant_id == tenant_id, Product.status == status
-            )
+            select(func.count())
+            .select_from(Product)
+            .where(Product.tenant_id == tenant_id, Product.status == status)
         )
         return result.scalar_one()
 
     async def count_all(self, tenant_id: UUID) -> int:
         result = await self.session.execute(
-            select(func.count()).select_from(Product).where(Product.tenant_id == tenant_id)
+            select(func.count())
+            .select_from(Product)
+            .where(Product.tenant_id == tenant_id)
         )
         return result.scalar_one()
 

@@ -1,3 +1,5 @@
+"""Global handler for uncaught exceptions — logs server-side, generic JSON to clients."""
+
 import structlog
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -6,6 +8,7 @@ logger = structlog.get_logger()
 
 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Return 500 with a safe message; log exception details (not exposed)."""
     await logger.aerror(
         "unhandled_exception",
         exc_type=type(exc).__name__,

@@ -1,3 +1,5 @@
+"""FastAPI app factory: CORS, logging middleware, routers, ``/health``, optional seed on startup."""
+
 import structlog
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -15,6 +17,7 @@ async def lifespan(app: FastAPI):
     # Startup
     if settings.seed_on_startup:
         from app.seed import run_seed
+
         await run_seed()
 
     structlog.configure(
@@ -23,7 +26,8 @@ async def lifespan(app: FastAPI):
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.ConsoleRenderer() if settings.environment == "development"
+            structlog.dev.ConsoleRenderer()
+            if settings.environment == "development"
             else structlog.processors.JSONRenderer(),
         ],
     )
@@ -33,6 +37,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    """Build FastAPI with middleware, exception handler, and versioned API routers."""
     app = FastAPI(
         title="Inventory Management System",
         version="1.0.0",

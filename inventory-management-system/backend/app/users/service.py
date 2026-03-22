@@ -1,3 +1,5 @@
+"""Admin user management: invites (email), roles, tenant access."""
+
 import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -13,6 +15,8 @@ from app.tenants.repository import TenantRepository
 
 
 class UserManagementService:
+    """Orchestrates user list/detail, invitations, and tenant access updates."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repo = UserManagementRepository(session)
@@ -42,7 +46,9 @@ class UserManagementService:
 
         raw_token = secrets.token_urlsafe(32)
         token_hash = hash_invite_token(raw_token)
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.invite_expire_hours)
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            hours=settings.invite_expire_hours
+        )
 
         await invite_repo.create(
             email=email_norm,
@@ -108,7 +114,9 @@ class UserManagementService:
             raise ValueError(f"User {user_id} not found.")
         return await self.repo.get_user_tenants(user_id)
 
-    async def set_user_tenant_access(self, user_id: UUID, tenant_ids: list[UUID]) -> dict:
+    async def set_user_tenant_access(
+        self, user_id: UUID, tenant_ids: list[UUID]
+    ) -> dict:
         """Replace assignments. Empty list clears rows → user can access all tenants (same as seed default)."""
         user = await self.repo.get_user_by_id(user_id)
         if not user:

@@ -1,3 +1,5 @@
+"""Inventory rows joined with product metadata for list/detail and stock updates."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -20,6 +22,8 @@ InventorySortDir = Literal["asc", "desc"]
 
 
 class InventoryRepository:
+    """Tenant-scoped inventory queries and reorder/below-threshold aggregates."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -39,15 +43,31 @@ class InventoryRepository:
             return (ls.desc(), Product.sku.desc(), Inventory.id.asc())
         if sort_by == "cost_per_unit":
             col = Product.cost_per_unit
-            return (col.asc(), Inventory.id.asc()) if sort_dir == "asc" else (col.desc(), Inventory.id.asc())
+            return (
+                (col.asc(), Inventory.id.asc())
+                if sort_dir == "asc"
+                else (col.desc(), Inventory.id.asc())
+            )
         if sort_by == "current_stock":
             col = Inventory.current_stock
-            return (col.asc(), Inventory.id.asc()) if sort_dir == "asc" else (col.desc(), Inventory.id.asc())
+            return (
+                (col.asc(), Inventory.id.asc())
+                if sort_dir == "asc"
+                else (col.desc(), Inventory.id.asc())
+            )
         if sort_by == "reorder_threshold":
             col = Product.reorder_threshold
-            return (col.asc(), Inventory.id.asc()) if sort_dir == "asc" else (col.desc(), Inventory.id.asc())
+            return (
+                (col.asc(), Inventory.id.asc())
+                if sort_dir == "asc"
+                else (col.desc(), Inventory.id.asc())
+            )
         col = Inventory.created_at
-        return (col.asc(), Inventory.id.asc()) if sort_dir == "asc" else (col.desc(), Inventory.id.asc())
+        return (
+            (col.asc(), Inventory.id.asc())
+            if sort_dir == "asc"
+            else (col.desc(), Inventory.id.asc())
+        )
 
     async def list(
         self,
@@ -69,7 +89,9 @@ class InventoryRepository:
         if below_reorder_only:
             base = base.where(Inventory.current_stock < Product.reorder_threshold)
 
-        count_result = await self.session.execute(select(func.count()).select_from(base.subquery()))
+        count_result = await self.session.execute(
+            select(func.count()).select_from(base.subquery())
+        )
         total = count_result.scalar_one()
 
         query = (
@@ -103,7 +125,9 @@ class InventoryRepository:
         )
         return result.scalar_one()
 
-    async def get_by_id(self, inventory_id: UUID, tenant_id: UUID) -> Optional[Inventory]:
+    async def get_by_id(
+        self, inventory_id: UUID, tenant_id: UUID
+    ) -> Optional[Inventory]:
         result = await self.session.execute(
             select(Inventory)
             .options(selectinload(Inventory.product))

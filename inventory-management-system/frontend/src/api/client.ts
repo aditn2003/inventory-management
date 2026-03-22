@@ -1,3 +1,6 @@
+/**
+ * Shared Axios client for `/api/v1`: attaches JWT + `X-Tenant-Id`, refreshes access token on 401.
+ */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { store } from '@/store';
 import { updateAccessToken, logout } from '@/store/authSlice';

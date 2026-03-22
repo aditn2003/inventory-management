@@ -1,3 +1,5 @@
+"""Product CRUD and list summaries; creates companion inventory rows on create."""
+
 from typing import Optional
 from uuid import UUID
 
@@ -9,6 +11,8 @@ from app.products.repository import ProductRepository, ProductSortBy, ProductSor
 
 
 class ProductService:
+    """Tenant-scoped products with validation and auto inventory row."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repo = ProductRepository(session)
@@ -24,7 +28,9 @@ class ProductService:
         sort_by: Optional[ProductSortBy] = None,
         sort_dir: Optional[ProductSortDir] = None,
     ) -> dict:
-        products, total = await self.repo.list(tenant_id, page, page_size, q, sort_by, sort_dir)
+        products, total = await self.repo.list(
+            tenant_id, page, page_size, q, sort_by, sort_dir
+        )
         active = await self.repo.count_by_status(tenant_id, "active")
         inactive = await self.repo.count_by_status(tenant_id, "inactive")
         all_count = await self.repo.count_all(tenant_id)
@@ -40,12 +46,16 @@ class ProductService:
             raise ValueError("Product not found.")
         return product
 
-    async def create_product(self, tenant_id: UUID, data: dict, unit: str = "units") -> Product:
+    async def create_product(
+        self, tenant_id: UUID, data: dict, unit: str = "units"
+    ) -> Product:
         if not data.get("category", "").strip():
             raise ValueError("Category is required.")
         status = data.get("status", "active")
         if status not in self.VALID_STATUSES:
-            raise ValueError(f"Status must be one of: {', '.join(self.VALID_STATUSES)}.")
+            raise ValueError(
+                f"Status must be one of: {', '.join(self.VALID_STATUSES)}."
+            )
 
         existing = await self.repo.get_by_sku(tenant_id, data["sku"])
         if existing:
@@ -65,7 +75,9 @@ class ProductService:
         # Reload with inventory
         return await self.repo.get_by_id(product.id, tenant_id)
 
-    async def update_product(self, product_id: UUID, tenant_id: UUID, data: dict) -> Product:
+    async def update_product(
+        self, product_id: UUID, tenant_id: UUID, data: dict
+    ) -> Product:
         product = await self.get_product(product_id, tenant_id)
 
         if "sku" in data and data["sku"] and data["sku"] != product.sku:

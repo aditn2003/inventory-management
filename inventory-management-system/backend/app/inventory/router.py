@@ -1,3 +1,5 @@
+"""Inventory API (tenant-scoped). Mounted at ``/api/v1/inventory``."""
+
 from typing import Literal, Optional
 from uuid import UUID
 

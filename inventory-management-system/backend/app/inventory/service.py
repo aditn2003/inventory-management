@@ -1,3 +1,5 @@
+"""Inventory listing, stock updates, and product delete via inventory delete."""
+
 from typing import Optional
 from uuid import UUID
 
@@ -12,6 +14,8 @@ from app.products.repository import ProductRepository
 
 
 class InventoryService:
+    """Tenant-scoped stock views and quantity patches."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repo = InventoryRepository(session)
@@ -42,7 +46,9 @@ class InventoryService:
             raise ValueError("Inventory item not found.")
         return item
 
-    async def patch_stock(self, inventory_id: UUID, tenant_id: UUID, current_stock: int):
+    async def patch_stock(
+        self, inventory_id: UUID, tenant_id: UUID, current_stock: int
+    ):
         if current_stock < 0:
             raise ValueError("Stock cannot be negative.")
         item = await self.get_inventory(inventory_id, tenant_id)

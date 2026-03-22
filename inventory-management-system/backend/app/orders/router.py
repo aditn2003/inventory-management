@@ -1,3 +1,5 @@
+"""Order API (tenant-scoped). Mounted at ``/api/v1/orders``."""
+
 from typing import Literal, Optional
 from uuid import UUID
 
@@ -7,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_tenant_id
 from app.database import get_db
-from app.orders.schemas import OrderCreate, OrderListResponse, OrderResponse, OrderUpdate
+from app.orders.schemas import (
+    OrderCreate,
+    OrderListResponse,
+    OrderResponse,
+    OrderUpdate,
+)
 from app.orders.service import OrderService
 
 router = APIRouter()
@@ -64,7 +71,9 @@ async def create_order(
 ) -> OrderResponse:
     svc = OrderService(session)
     try:
-        return await svc.create_order(tenant_id, body.product_id, body.requested_qty, body.notes)
+        return await svc.create_order(
+            tenant_id, body.product_id, body.requested_qty, body.notes
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
@@ -91,9 +100,15 @@ async def update_order(
 ) -> OrderResponse:
     svc = OrderService(session)
     try:
-        return await svc.update_order(order_id, tenant_id, body.requested_qty, body.notes)
+        return await svc.update_order(
+            order_id, tenant_id, body.requested_qty, body.notes
+        )
     except ValueError as exc:
-        status_code = status.HTTP_409_CONFLICT if "cannot" in str(exc).lower() else status.HTTP_422_UNPROCESSABLE_ENTITY
+        status_code = (
+            status.HTTP_409_CONFLICT
+            if "cannot" in str(exc).lower()
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
         raise HTTPException(status_code=status_code, detail=str(exc))
 
 

@@ -1,3 +1,5 @@
+"""User admin API: list, invite, role, tenant access. Mounted at ``/api/v1/users``."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -31,7 +33,11 @@ async def list_users(
     return await svc.list_users(page, page_size)
 
 
-@router.post("/invitations", response_model=UserInviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/invitations",
+    response_model=UserInviteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def send_user_invitation(
     body: UserInviteCreate,
     session: AsyncSession = Depends(get_db),
@@ -46,7 +52,9 @@ async def send_user_invitation(
         if "already exists" in detail.lower():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
         if "RESEND_API_KEY is not configured" in detail:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=detail
+            )
         if "Could not send" in detail or "send invitation email" in detail.lower():
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)

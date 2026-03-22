@@ -1,3 +1,5 @@
+"""Persistence for ``User`` rows and ``UserTenantRole`` assignments."""
+
 from typing import Optional
 from uuid import UUID
 
@@ -8,6 +10,8 @@ from app.auth.models import User, UserTenantRole
 
 
 class UserRepository:
+    """CRUD-style access for users used by auth and tenant checks."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -16,7 +20,9 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def get_by_google_sub(self, google_sub: str) -> Optional[User]:
-        result = await self.session.execute(select(User).where(User.google_sub == google_sub))
+        result = await self.session.execute(
+            select(User).where(User.google_sub == google_sub)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: UUID) -> Optional[User]:

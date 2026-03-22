@@ -8,7 +8,9 @@ from app.config import get_settings
 log = structlog.get_logger()
 
 
-async def send_invitation_email(*, to_email: str, invite_url: str, app_name: str = "IMS") -> None:
+async def send_invitation_email(
+    *, to_email: str, invite_url: str, app_name: str = "IMS"
+) -> None:
     settings = get_settings()
     if not settings.resend_api_key:
         raise RuntimeError("RESEND_API_KEY is not set")
