@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { productsApi } from '@/api/products';
 import { useTenant } from '@/hooks/useTenant';
@@ -7,7 +7,7 @@ import { InfoCardGrid } from '@/components/ui/InfoCardGrid';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Product } from '@/types/product';
 
 export function ProductDetailPage() {
@@ -42,7 +42,7 @@ export function ProductDetailPage() {
 
   const stockValue = product.inventory
     ? `${product.inventory.current_stock} ${product.inventory.unit}`
-    : '—';
+    : 'â€”';
 
   const stockColorClass =
     product.inventory && product.inventory.current_stock < product.reorder_threshold

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Stack, Buildings, CaretLeft, CaretRight, MagnifyingGlass } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ import { InventoryAttentionSummary } from '@/components/inventory/InventoryAtten
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InventoryQuickUpdate } from '@/components/ui/InventoryQuickUpdate';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Inventory } from '@/types/inventory';
 import {
   InventorySortHeader,
@@ -84,18 +84,18 @@ export function InventoryListPage() {
     {
       key: 'name',
       header: <InventorySortHeader label="Product name" field="product_name" sort={sort} onSortClick={handleSortClick} />,
-      render: (inv: Inventory) => inv.product?.name ?? '—',
+      render: (inv: Inventory) => inv.product?.name ?? 'â€”',
     },
     {
       key: 'sku',
       header: <InventorySortHeader label="SKU" field="sku" sort={sort} onSortClick={handleSortClick} />,
-      render: (inv: Inventory) => inv.product?.sku ?? '—',
+      render: (inv: Inventory) => inv.product?.sku ?? 'â€”',
     },
     {
       key: 'cost_per_unit',
       header: <InventorySortHeader label="Cost per unit" field="cost_per_unit" sort={sort} onSortClick={handleSortClick} />,
       render: (inv: Inventory) =>
-        inv.product != null ? `$${Number(inv.product.cost_per_unit).toFixed(2)}` : '—',
+        inv.product != null ? `$${Number(inv.product.cost_per_unit).toFixed(2)}` : 'â€”',
     },
     {
       key: 'current_inventory',
@@ -116,7 +116,7 @@ export function InventoryListPage() {
     {
       key: 'reorder',
       header: <InventorySortHeader label="Reorder threshold" field="reorder_threshold" sort={sort} onSortClick={handleSortClick} />,
-      render: (inv: Inventory) => inv.product?.reorder_threshold ?? '—',
+      render: (inv: Inventory) => inv.product?.reorder_threshold ?? 'â€”',
     },
     {
       key: 'actions',
@@ -219,7 +219,7 @@ export function InventoryListPage() {
           <p className="text-sm text-slate-500 dark:text-neutral-400">
             Showing{' '}
             <span className="font-medium text-slate-700 dark:text-neutral-300">
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
+              {(page - 1) * PAGE_SIZE + 1}â€“{Math.min(page * PAGE_SIZE, total)}
             </span>{' '}
             of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
           </p>

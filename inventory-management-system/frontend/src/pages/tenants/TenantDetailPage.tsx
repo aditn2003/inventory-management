@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tenantsApi } from '@/api/tenants';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +7,7 @@ import { InfoCardGrid } from '@/components/ui/InfoCardGrid';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Tenant } from '@/types/tenant';
 
 export function TenantDetailPage() {

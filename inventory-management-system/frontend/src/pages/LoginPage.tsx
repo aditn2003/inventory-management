@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { authApi } from '@/api/auth';
 import { useAppDispatch } from '@/store/hooks';
 import { setCredentials } from '@/store/authSlice';
 import { useAuth } from '@/hooks/useAuth';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),

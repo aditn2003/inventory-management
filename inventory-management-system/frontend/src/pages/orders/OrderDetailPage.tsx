@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ordersApi } from '@/api/orders';
 import { DetailHeader } from '@/components/ui/DetailHeader';
@@ -6,7 +6,7 @@ import { InfoCardGrid } from '@/components/ui/InfoCardGrid';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Order } from '@/types/order';
 
 export function OrderDetailPage() {
@@ -149,7 +149,7 @@ export function OrderDetailPage() {
             value: (
               <div>
                 <p className="text-lg font-semibold text-slate-900 dark:text-neutral-100 tabular-nums">
-                  {inv ? `${inv.current_stock} ${inv.unit}` : '—'}
+                  {inv ? `${inv.current_stock} ${inv.unit}` : 'â€”'}
                 </p>
                 {order.status === 'confirmed' && inv && (
                   <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1 leading-snug">
@@ -161,7 +161,7 @@ export function OrderDetailPage() {
           },
           {
             label: 'Reorder threshold',
-            value: p?.reorder_threshold ?? '—',
+            value: p?.reorder_threshold ?? 'â€”',
             valueClassName: 'tabular-nums text-slate-900 dark:text-neutral-100',
           },
           { label: 'Status', value: <StatusBadge status={order.status} /> },

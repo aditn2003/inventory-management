@@ -3,7 +3,6 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.orders.repository import OrderRepository
 from app.products.repository import ProductRepository

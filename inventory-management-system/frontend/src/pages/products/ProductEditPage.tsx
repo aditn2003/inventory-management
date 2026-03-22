@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { DetailHeader } from '@/components/ui/DetailHeader';
 import { FormCard } from '@/components/ui/FormCard';
 import { CreatableCombobox } from '@/components/ui/CreatableCombobox';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import { DEFAULT_CATEGORIES, DEFAULT_UNITS } from '@/utils/constants';
 
 const productSchema = z.object({

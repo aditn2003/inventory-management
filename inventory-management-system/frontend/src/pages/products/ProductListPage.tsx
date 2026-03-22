@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Package, Buildings, MagnifyingGlass, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Product } from '@/types/product';
 import {
   ProductSortHeader,
@@ -215,7 +215,7 @@ export function ProductListPage() {
           <p className="text-sm text-slate-500 dark:text-neutral-400">
             Showing{' '}
             <span className="font-medium text-slate-700 dark:text-neutral-300">
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
+              {(page - 1) * PAGE_SIZE + 1}â€“{Math.min(page * PAGE_SIZE, total)}
             </span>{' '}
             of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
           </p>

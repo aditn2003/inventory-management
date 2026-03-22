@@ -11,7 +11,6 @@ from app.users.schemas import (
     UserDetail,
     UserInviteCreate,
     UserInviteResponse,
-    UserListItem,
     UserListResponse,
     UserRoleUpdate,
     UserTenantAccessSet,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, UsersThree } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -8,7 +8,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { UserListItem } from '@/types/user';
 
 export function UserListPage() {

@@ -111,15 +111,6 @@ class InventoryRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_product_id(self, product_id: UUID, tenant_id: UUID) -> Optional[Inventory]:
-        result = await self.session.execute(
-            select(Inventory).where(
-                Inventory.product_id == product_id,
-                Inventory.tenant_id == tenant_id,
-            )
-        )
-        return result.scalar_one_or_none()
-
     async def patch_stock(self, inventory: Inventory, current_stock: int) -> Inventory:
         inventory.current_stock = current_stock
         await self.session.flush()

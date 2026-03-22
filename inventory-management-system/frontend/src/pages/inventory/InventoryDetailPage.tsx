@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { inventoryApi } from '@/api/inventory';
 import { DetailHeader } from '@/components/ui/DetailHeader';
@@ -6,7 +6,7 @@ import { InfoCardGrid } from '@/components/ui/InfoCardGrid';
 import { InventoryQuickUpdate } from '@/components/ui/InventoryQuickUpdate';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { Inventory } from '@/types/inventory';
 
 export function InventoryDetailPage() {
@@ -56,7 +56,7 @@ export function InventoryDetailPage() {
             'Inventory Item'
           )
         }
-        subtitle={`SKU: ${item.product?.sku ?? '—'}`}
+        subtitle={`SKU: ${item.product?.sku ?? 'â€”'}`}
         backTo="/inventory"
         backLabel="Inventory"
         actions={
@@ -68,8 +68,8 @@ export function InventoryDetailPage() {
 
       <InfoCardGrid
         cards={[
-          { label: 'Category', value: item.product?.category ?? '—' },
-          { label: 'Cost per unit', value: item.product ? `$${Number(item.product.cost_per_unit).toFixed(2)}` : '—' },
+          { label: 'Category', value: item.product?.category ?? 'â€”' },
+          { label: 'Cost per unit', value: item.product ? `$${Number(item.product.cost_per_unit).toFixed(2)}` : 'â€”' },
           {
             label: 'Current inventory',
             valuePlain: true,
@@ -92,7 +92,7 @@ export function InventoryDetailPage() {
               />
             ),
           },
-          { label: 'Reorder threshold', value: item.product?.reorder_threshold ?? '—' },
+          { label: 'Reorder threshold', value: item.product?.reorder_threshold ?? 'â€”' },
         ]}
       />
 

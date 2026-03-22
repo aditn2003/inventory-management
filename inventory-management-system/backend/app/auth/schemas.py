@@ -15,11 +15,6 @@ class RegisterRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
 class UserResponse(BaseModel):
     """Session user profile — email omitted for display/privacy; use name in UI."""
 

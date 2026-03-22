@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { usersApi } from '@/api/users';
 import { DetailHeader } from '@/components/ui/DetailHeader';
 import { FormCard } from '@/components/ui/FormCard';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 
 const schema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email'),

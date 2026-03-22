@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { tenantsApi } from '@/api/tenants';
 import { DetailHeader } from '@/components/ui/DetailHeader';
 import { FormCard } from '@/components/ui/FormCard';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 
 const tenantSchema = z.object({
   name: z.string().min(1, 'Name is required'),

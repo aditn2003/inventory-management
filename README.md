@@ -1,8 +1,6 @@
 # Inventory Management System (IMS)
 
-A full-stack **multi-tenant** inventory management application: **FastAPI** backend, **PostgreSQL** with row-level security, **Redis** for auth/session support, **React** SPA with **Vite**, **Tailwind CSS**, and **Nginx** as the edge proxy.
-
-This document describes **functionality**, **APIs**, **configuration**, **testing**, and **notable implementation details** (including recent UI and data-model updates).
+Full-stack **multi-tenant** inventory app: **FastAPI** + **PostgreSQL** (RLS) + **Redis** (auth/session helpers) + **React** (Vite, Tailwind) behind **Nginx**.
 
 ---
 
@@ -21,9 +19,8 @@ This document describes **functionality**, **APIs**, **configuration**, **testin
 - [Security (summary)](#security-summary)
 - [Orders & inventory lifecycle](#orders--inventory-lifecycle)
 - [Database & seed data](#database--seed-data)
-- [Testing & coverage](#testing--coverage)
-- [Continuous integration](#continuous-integration)
-- [API documentation (Swagger)](#api-documentation-swagger)
+- [Testing, lint & CI](#testing-lint--ci)
+- [API documentation (OpenAPI)](#api-documentation-openapi)
 - [Resetting the database](#resetting-the-database-docker)
 
 ---
@@ -43,11 +40,11 @@ http://localhost
 ```
 
 - **API (via Nginx):** `http://localhost/api/...`
-- **Interactive API docs:** `http://localhost/api/docs`
+- **OpenAPI UI:** `http://localhost/api/docs` (ReDoc: `/api/redoc`, JSON: `/api/openapi.json`)
 
-The seed script runs automatically on **first startup** when `SEED_ON_STARTUP=true` (see `.env.example`).
+The seed script runs when `SEED_ON_STARTUP=true` (see `.env.example`) and the DB is ready.
 
-After pulling schema changes, ensure migrations apply: **`alembic upgrade head`** inside the API container (or from `backend/` locally).
+After schema changes: run **`alembic upgrade head`** in the API container or from `backend/` locally.
 
 ---
 
@@ -87,7 +84,7 @@ Configure in `.env`:
 
 ## Architecture
 
-GitHub Actions workflows live at **`<repo-root>/.github/workflows/`** (next to the folder below), not inside `inventory-management-system/`.
+CI workflows: **`<repo-root>/.github/workflows/`** (repository root, not inside `inventory-management-system/`).
 
 ```
 inventory-management-system/
@@ -170,24 +167,18 @@ Public routes: `/login`, `/auth/oauth-callback`, `/register/invite`.
 
 ### Order creation (business rule)
 
-When an order is **created** via the API:
+When an order is **created**, stock is **not** reserved or deducted. Initial status:
 
-- If **`current_stock >= requested_qty`** → status **`created`**.
-- If **`current_stock < requested_qty`** → status **`pending`**.
+- **`current_stock >= requested_qty`** → **`created`**
+- **`current_stock < requested_qty`** → **`pending`**
 
-No stock is reserved or deducted at creation time.
-
-**Seed data** applies the same rule: order rows are seeded with `created` or `pending` based on each product’s inventory vs requested quantity (not random or positional).
-
-### Redis
-
-Redis is used for **JWT blacklist**, **OAuth state**, and **login rate limiting** — **not** for caching API responses or database query results.
+Seed data uses the same rule. Full status semantics: [Orders & inventory lifecycle](#orders--inventory-lifecycle).
 
 ---
 
 ## REST API reference
 
-Base path (behind Nginx): **`/api/v1`**. All tenant-scoped routes require **`Authorization: Bearer <access_token>`** and **`X-Tenant-Id: <tenant_uuid>`** unless noted.
+Base path (behind Nginx): **`/api/v1`**. Tenant-scoped routes need **`Authorization`** and **`X-Tenant-Id`** as described in [Authentication & multi-tenancy](#authentication--multi-tenancy).
 
 ### Auth — `/api/v1/auth`
 
@@ -269,8 +260,7 @@ Base path (behind Nginx): **`/api/v1`**. All tenant-scoped routes require **`Aut
 
 ## Authentication & multi-tenancy
 
-- **`Authorization`:** `Bearer <access_token>` for protected routes.
-- **`X-Tenant-Id`:** UUID of the active tenant for **tenant-scoped** resources (products, inventory, orders). Validated server-side; combined with **RLS** and user **tenant allow-list** (users with no assignment rows may access all tenants; otherwise restricted to assigned tenants).
+Protected routes use **`Authorization: Bearer <access_token>`**. Tenant-scoped routes (products, inventory, orders) also require **`X-Tenant-Id: <uuid>`**. The server validates access against **RLS** and the user’s **tenant assignments** (no rows = all tenants; otherwise allow-list only).
 
 ---
 
@@ -293,7 +283,7 @@ See **`.env.example`** for the full list. Important keys:
 
 ## Security (summary)
 
-Nginx applies **rate limits** (stricter on `/api/v1/auth/*` and Google OAuth), security headers, and forwards client IP headers. The backend uses **bcrypt** passwords, **JWT** access/refresh with **refresh rotation**, **Redis blacklist** on logout, generic login errors, **hashed invite tokens**, and **PostgreSQL RLS**. Details in the original security tables remain valid; see **`nginx/nginx.conf`** and **`app/auth/`** for specifics.
+**Nginx:** rate limits (stricter on `/api/v1/auth/*` and OAuth), security headers, client IP forwarding — see **`nginx/nginx.conf`**. **Backend:** bcrypt passwords; JWT access + refresh with rotation; **Redis** blacklist on logout; generic login errors; **hashed invite tokens**; **PostgreSQL RLS** — see **`app/auth/`**.
 
 ---
 
@@ -319,44 +309,46 @@ Legacy DBs may have been migrated so old “fulfilled” semantics align with **
 ## Database & seed data
 
 - **Migrations:** Alembic (`backend/alembic/`).
-- **Seed:** `app/seed.py` — demo users, **17 tenants** (including two original tenants preserved in spirit), products, inventory, and orders. Order statuses in seed follow **inventory vs requested quantity** as in the API.
+- **Seed:** `app/seed.py` — demo users, tenants, products, inventory, orders (statuses follow the same stock rule as the API).
 
-To re-seed from scratch: [reset volumes](#resetting-the-database-docker) and start with `SEED_ON_STARTUP=true`.
+Full reset: [Resetting the database](#resetting-the-database-docker), then start with `SEED_ON_STARTUP=true` if you want seed data.
 
 ---
 
-## Testing & coverage
+## Testing, lint & CI
+
+### Local
+
+From **`inventory-management-system/backend`** (install test extras once):
 
 ```bash
-# In Docker
-docker compose exec api pytest
-
-# Local (from backend/, with test extras)
 pip install -e ".[test]"
+
+ruff check app
+# optional: ruff check app --fix
+
 pytest --cov=app --cov-config=.coveragerc --cov-report=term-missing
 ```
 
-Coverage config (**`backend/.coveragerc`**) omits **`seed.py`**, **`app/email/*`**, and **`app/auth/oauth_google.py`** (external / non-deterministic paths). The suite targets high coverage of routers, services, and repositories.
+Pytest from the API container (image installs runtime deps only; **Ruff** is not in that image — use local `pip install -e ".[test]"` for lint):
+
+```bash
+docker compose exec api pytest
+```
+
+**Coverage:** **`backend/.coveragerc`** omits **`seed.py`**, **`app/email/*`**, and **`app/auth/oauth_google.py`** (non-deterministic / external). The suite focuses on routers, services, and repositories.
+
+### GitHub Actions
+
+Workflow: **`<repo-root>/.github/workflows/tests.yml`**, `working-directory: inventory-management-system/backend`. The Git repository root should contain both **`.github/`** and **`inventory-management-system/`**.
+
+On push/PR to `main` or `master`: Python 3.12 → `pip install -e ".[test]"` → `ruff check app` → `pytest --cov=app --cov-fail-under=75` → upload `coverage.xml` as an artifact.
 
 ---
 
-## Continuous integration
+## API documentation (OpenAPI)
 
-Workflow file: **`<repository-root>/.github/workflows/tests.yml`** (one level **above** `inventory-management-system/`). It runs commands in **`inventory-management-system/backend`**. Initialize Git at the **parent** of `inventory-management-system` so `.github` and `.git` share the same root.
-
-- Triggers on **push** and **pull_request** to `main` / `master`.
-- Runs on **Ubuntu**, Python **3.12**, installs **`backend`** with **`.[test]`**.
-- Runs **`pytest`** with **`--cov=app`**, **`--cov-fail-under=75`**, uploads **`coverage.xml`** as an artifact.
-
----
-
-## API documentation (Swagger)
-
-Interactive OpenAPI UI (when the stack is running):
-
-- **`http://localhost/api/docs`**
-- ReDoc: **`http://localhost/api/redoc`**
-- OpenAPI JSON: **`http://localhost/api/openapi.json`**
+When the stack is up, same URLs as [Quick start](#quick-start): **`/api/docs`**, **`/api/redoc`**, **`/api/openapi.json`** (via Nginx on port 80).
 
 ---
 
@@ -373,4 +365,4 @@ docker compose up --build
 
 ## License / assignment
 
-Built as an interview / portfolio project. Adjust this section per your repository policy.
+Built as an interview / portfolio project. The original brief and wireframe references are in **`Assignment-Requirement-Document.md`** (this implementation uses FastAPI/React instead of Node where noted). Adjust the license section per your repository policy.

@@ -1,5 +1,7 @@
 # **Interview Assignment - INVENTORY MANAGEMENT SYSTEM**
 
+> **Implementation note:** The solution in this repository is documented in **`README.md`** (FastAPI + React + PostgreSQL + Redis + Docker). This document is the **original assignment brief** (preferred stack was Node/Express; the delivered app follows the README).
+
 ## **MODULE INTENT (Anchor for Candidate)**
 
 The **INVENTORY Management System** provides a foundational, multi-tenant inventory management system. It allows users to manage Tenants, Products, Inventory levels, and Orders within a defined organizational scope. 

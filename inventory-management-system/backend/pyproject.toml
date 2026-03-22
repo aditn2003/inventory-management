@@ -34,7 +34,12 @@ test = [
     "factory-boy>=3.3",
     "faker>=25.0",
     "aiosqlite>=0.20",
+    "ruff>=0.8",
 ]
+
+[tool.ruff]
+target-version = "py312"
+src = ["app"]
 
 [tool.setuptools.packages.find]
 where = ["."]

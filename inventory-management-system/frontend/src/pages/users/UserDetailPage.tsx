@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Buildings, CaretLeft, CaretRight, MagnifyingGlass } from '@phosphor-icons/react';
@@ -12,7 +12,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { DataTable } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 import type { UserDetail } from '@/types/user';
 import type { Tenant } from '@/types/tenant';
 import {
@@ -243,7 +243,7 @@ export function UserDetailPage() {
           <h2 className="text-sm font-semibold text-slate-800 dark:text-neutral-200">Tenant access</h2>
           <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1 max-w-2xl">
             Use the checkboxes to control which tenants this user can access.
-            When all tenants are allowed, the API stores no rows — same default as a new user.
+            When all tenants are allowed, the API stores no rows â€” same default as a new user.
           </p>
         </div>
 
@@ -296,7 +296,7 @@ export function UserDetailPage() {
                 <p className="text-sm text-slate-500 dark:text-neutral-400">
                   Showing{' '}
                   <span className="font-medium text-slate-700 dark:text-neutral-300">
-                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
+                    {(page - 1) * PAGE_SIZE + 1}â€“{Math.min(page * PAGE_SIZE, total)}
                   </span>{' '}
                   of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
                 </p>

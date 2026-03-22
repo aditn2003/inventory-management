@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Cube } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { authApi } from '@/api/auth';
 import { useAppDispatch } from '@/store/hooks';
 import { logout, setCredentials } from '@/store/authSlice';
-import { getErrorMessage } from '@/utils/apiError';
+import { getErrorMessage } from '@/types/api';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   access_denied: 'Google sign-in was cancelled.',
