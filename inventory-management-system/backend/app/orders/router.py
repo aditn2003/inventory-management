@@ -1,7 +1,8 @@
 from typing import Literal, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
+from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_tenant_id
@@ -36,8 +37,9 @@ async def list_orders(
         None,
         description="asc or desc; must be used together with sort_by.",
     ),
-    status: Optional[OrderStatusFilter] = Query(
+    status_filter: Optional[OrderStatusFilter] = Query(
         None,
+        alias="status",
         description="If set, only orders in this status (paginated). Summary counts are still tenant-wide.",
     ),
     session: AsyncSession = Depends(get_db),
@@ -50,7 +52,7 @@ async def list_orders(
         )
     svc = OrderService(session)
     return await svc.list_orders(
-        tenant_id, page, page_size, q, sort_by, sort_dir, status
+        tenant_id, page, page_size, q, sort_by, sort_dir, status_filter
     )
 
 

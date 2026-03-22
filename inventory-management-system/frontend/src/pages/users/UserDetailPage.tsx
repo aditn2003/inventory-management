@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Buildings, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { Buildings, CaretLeft, CaretRight, MagnifyingGlass } from '@phosphor-icons/react';
 import { useUserDetail } from '@/hooks/useUsers';
 import { useTenants } from '@/hooks/useTenants';
 import { usersApi } from '@/api/users';
@@ -23,7 +23,6 @@ import {
 
 const PAGE_SIZE = 10;
 
-/** No assignment rows in DB → user may access every tenant. */
 function hasTenantAccess(user: UserDetail, tenantId: string): boolean {
   if (user.assigned_tenants.length === 0) return true;
   return user.assigned_tenants.some((t) => t.id === tenantId);
@@ -55,11 +54,11 @@ export function UserDetailPage() {
   }, []);
 
   const { data: tenantsData, loading: tenantsLoading, error: tenantsError } = useTenants({
-      page,
-      page_size: PAGE_SIZE,
-      q: search || undefined,
-      ...(sort ? { sort_by: sort.field, sort_dir: sort.dir } : {}),
-    });
+    page,
+    page_size: PAGE_SIZE,
+    q: search || undefined,
+    ...(sort ? { sort_by: sort.field, sort_dir: sort.dir } : {}),
+  });
 
   const total = tenantsData?.meta.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -88,9 +87,7 @@ export function UserDetailPage() {
     if (!id || !user) return;
     setAccessSaving(true);
     try {
-      const allIds =
-        allTenantIdsCache.current ??
-        (await fetchAllTenantIds());
+      const allIds = allTenantIdsCache.current ?? (await fetchAllTenantIds());
       allTenantIdsCache.current = allIds;
 
       const assignedIds = user.assigned_tenants.map((t) => t.id);
@@ -99,9 +96,7 @@ export function UserDetailPage() {
       let tenant_ids: string[];
 
       if (checked) {
-        if (allAccess) {
-          return;
-        }
+        if (allAccess) return;
         const next = [...new Set([...assignedIds, tenantId])];
         tenant_ids = next.length === allIds.length ? [] : next;
       } else {
@@ -147,7 +142,7 @@ export function UserDetailPage() {
     }
   };
 
-  if (loading && !user) return <div className="animate-pulse h-8 w-48 bg-gray-200 rounded" />;
+  if (loading && !user) return <div className="shimmer-line h-8 w-48" />;
   if (!user) return null;
 
   const tenantColumns = [
@@ -159,7 +154,7 @@ export function UserDetailPage() {
         <span onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 rounded border-slate-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500"
             checked={hasTenantAccess(user, t.id)}
             disabled={accessSaving}
             onChange={(e) => {
@@ -197,23 +192,18 @@ export function UserDetailPage() {
     <div className="space-y-6">
       <DetailHeader
         title={user.name}
-        subtitle={`Role: ${user.role}`}
         backTo="/users"
         backLabel="Users"
         actions={
-          <button
-            type="button"
-            onClick={() => setShowDelete(true)}
-            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-          >
+          <button type="button" onClick={() => setShowDelete(true)} className="btn-danger">
             Delete
           </button>
         }
       />
 
       <InfoCardGrid
+        columns={3}
         cards={[
-          { label: 'Name', value: user.name },
           { label: 'Role', value: <span className="capitalize">{user.role}</span> },
           {
             label: 'Tenant access',
@@ -226,13 +216,13 @@ export function UserDetailPage() {
         ]}
       />
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Change role</h2>
+      <div className="card p-5">
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-neutral-200 mb-3">Change role</h2>
         <div className="flex items-center gap-3">
           <select
             value={roleValue || user.role}
             onChange={(e) => setRoleValue(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input-field w-auto min-w-[120px]"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
@@ -241,31 +231,33 @@ export function UserDetailPage() {
             type="button"
             onClick={handleRoleUpdate}
             disabled={saving || !roleValue}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="btn-primary"
           >
             Update role
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-4">
+      <div className="card p-5 space-y-4">
         <div>
-          <h2 className="text-sm font-medium text-gray-900">Tenant access</h2>
-          <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-            Use the checkboxes to match the Tenants list (search and column headers sort the same way).
-            Checked means this user may work in that tenant. When all tenants are allowed, the API stores
-            no rows — same default as a new user (access to every tenant).
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-neutral-200">Tenant access</h2>
+          <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1 max-w-2xl">
+            Use the checkboxes to control which tenants this user can access.
+            When all tenants are allowed, the API stores no rows — same default as a new user.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="search"
-            placeholder="Search tenants..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-          />
+          <div className="relative">
+            <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" />
+            <input
+              type="search"
+              placeholder="Search tenants..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-field pl-10 w-64"
+            />
+          </div>
           <button
             type="button"
             disabled={accessSaving || user.assigned_tenants.length === 0}
@@ -275,14 +267,14 @@ export function UserDetailPage() {
                 : 'Clear restrictions so this user can use any tenant'
             }
             onClick={() => void handleAllowAllTenants()}
-            className="border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Allow all tenants
           </button>
         </div>
 
         {tenantsError ? (
-          <p className="text-red-600 text-sm">{tenantsError}</p>
+          <p className="text-rose-600 text-sm">{tenantsError}</p>
         ) : (
           <>
             <DataTable
@@ -292,43 +284,41 @@ export function UserDetailPage() {
               onRowClick={(t) => navigate(`/tenants/${t.id}`)}
               emptyState={
                 <EmptyState
-                  icon={<Buildings size={48} />}
+                  icon={<Buildings size={40} />}
                   heading="No tenants found"
                   subtext="Create tenants under Tenants in the sidebar."
                 />
               }
             />
 
-            {!tenantsLoading && total > 0 && (
+            {!tenantsLoading && totalPages > 1 && (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-500 dark:text-neutral-400">
                   Showing{' '}
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-slate-700 dark:text-neutral-300">
                     {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
                   </span>{' '}
-                  of <span className="font-medium text-gray-900">{total}</span>
+                  of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                    className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    <CaretLeft size={16} />
-                    Previous
+                    <CaretLeft size={14} /> Previous
                   </button>
-                  <span className="text-sm text-gray-600 px-2 tabular-nums">
+                  <span className="text-sm text-slate-500 dark:text-neutral-400 px-2 tabular-nums">
                     Page {page} of {totalPages}
                   </span>
                   <button
                     type="button"
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                    className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
                   >
-                    Next
-                    <CaretRight size={16} />
+                    Next <CaretRight size={14} />
                   </button>
                 </div>
               </div>

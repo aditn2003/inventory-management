@@ -15,6 +15,18 @@ interface DataTableProps<T extends { id: string }> {
   loading?: boolean;
 }
 
+function ShimmerRow({ cols }: { cols: number }) {
+  return (
+    <tr className="border-b border-slate-100/80 dark:border-neutral-800/80">
+      {[...Array(cols)].map((_, i) => (
+        <td key={i} className="px-4 py-3.5">
+          <div className="shimmer-line h-4 w-3/4" />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
 export function DataTable<T extends { id: string }>({
   columns,
   data,
@@ -22,31 +34,30 @@ export function DataTable<T extends { id: string }>({
   emptyState,
   loading,
 }: DataTableProps<T>) {
+  const headRow = (
+    <thead>
+      <tr className="border-b border-slate-200/80 dark:border-neutral-700/80 bg-slate-50/80 dark:bg-neutral-800/80 backdrop-blur-sm sticky top-0 z-10">
+        {columns.map((col) => (
+          <th
+            key={col.key}
+            className={`px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-neutral-400
+              uppercase tracking-wider ${col.className ?? ''}`}
+          >
+            {col.header}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.className ?? ''}`}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          {headRow}
           <tbody>
             {[...Array(5)].map((_, i) => (
-              <tr key={i} className="border-b border-gray-100">
-                {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-3">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
-                  </td>
-                ))}
-              </tr>
+              <ShimmerRow key={i} cols={columns.length} />
             ))}
           </tbody>
         </table>
@@ -56,50 +67,31 @@ export function DataTable<T extends { id: string }>({
 
   if (emptyState && data.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.className ?? ''}`}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-        </table>
+      <div className="card overflow-hidden">
+        <table className="w-full">{headRow}</table>
         {emptyState}
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="card overflow-hidden">
       <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${col.className ?? ''}`}
-              >
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        {headRow}
         <tbody>
-          {data.map((item) => (
+          {data.map((item, idx) => (
             <tr
               key={item.id}
-              className={`border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+              className={`border-b border-slate-100/60 dark:border-neutral-800/60 last:border-0 transition-colors duration-150
+                ${idx % 2 === 1 ? 'bg-slate-50/30 dark:bg-neutral-800/30' : 'bg-white dark:bg-neutral-900'}
+                ${onRowClick
+                  ? 'cursor-pointer hover:bg-primary-50/40 dark:hover:bg-primary-950/30'
+                  : 'hover:bg-slate-50/50 dark:hover:bg-neutral-800/50'
+                }`}
               onClick={() => onRowClick?.(item)}
             >
               {columns.map((col) => (
-                <td key={col.key} className={`px-4 py-3 text-sm text-gray-700 ${col.className ?? ''}`}>
+                <td key={col.key} className={`px-4 py-3.5 text-sm text-slate-700 dark:text-neutral-300 ${col.className ?? ''}`}>
                   {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '')}
                 </td>
               ))}

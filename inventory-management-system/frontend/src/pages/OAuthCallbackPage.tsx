@@ -32,7 +32,7 @@ export function OAuthCallbackPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const ran = useRef(false);
-  const [message, setMessage] = useState('Completing sign-in…');
+  const [message, setMessage] = useState('Completing sign-in...');
 
   useEffect(() => {
     if (ran.current) return;
@@ -72,8 +72,7 @@ export function OAuthCallbackPage() {
             refreshToken: tokens.refresh_token,
           }),
         );
-        toast.success(`Welcome, ${user.name || 'back'}!`);
-        navigate(user.role === 'admin' ? '/tenants' : '/products', { replace: true });
+        navigate('/', { replace: true });
       } catch (err) {
         setMessage('Sign-in failed');
         toast.error(getErrorMessage(err));
@@ -83,14 +82,16 @@ export function OAuthCallbackPage() {
   }, [dispatch, navigate, searchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
       <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Cube size={28} weight="fill" className="text-blue-600" />
-          <span className="text-lg font-semibold text-gray-900">IMS</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
+            <Cube size={22} weight="fill" className="text-white" />
+          </div>
+          <span className="text-lg font-bold text-slate-900 dark:text-neutral-100">IMS</span>
         </div>
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-600">{message}</p>
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-slate-600 dark:text-neutral-400">{message}</p>
       </div>
     </div>
   );

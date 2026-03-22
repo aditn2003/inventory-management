@@ -31,9 +31,19 @@ export function UserListPage() {
 
   const columns = [
     { key: 'name', header: 'Name' },
-    { key: 'role', header: 'Role', render: (u: UserListItem) => <span className="capitalize">{u.role}</span> },
+    { key: 'role', header: 'Role', render: (u: UserListItem) => (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+        bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 ring-1 ring-primary-600/20">
+        {u.role}
+      </span>
+    )},
     { key: 'assigned_tenant_count', header: 'Tenant access', render: (u: UserListItem) =>
-      u.assigned_tenant_count === 0 ? 'All tenants' : `${u.assigned_tenant_count} only` },
+      u.assigned_tenant_count === 0 ? (
+        <span className="text-emerald-600 font-medium">All tenants</span>
+      ) : (
+        `${u.assigned_tenant_count} only`
+      )
+    },
     { key: 'created_at', header: 'Joined', render: (u: UserListItem) => new Date(u.created_at).toLocaleDateString() },
     {
       key: 'actions',
@@ -50,17 +60,16 @@ export function UserListPage() {
     },
   ];
 
-  if (error) return <p className="text-red-600">{error}</p>;
+  if (error) return <p className="text-rose-600">{error}</p>;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
-        <button
-          type="button"
-          onClick={() => navigate('/users/new')}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Users</h1>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">Manage user accounts and access</p>
+        </div>
+        <button type="button" onClick={() => navigate('/users/new')} className="btn-primary">
           <Plus size={16} />
           Invite user
         </button>
@@ -73,8 +82,9 @@ export function UserListPage() {
         onRowClick={(u) => navigate(`/users/${u.id}`)}
         emptyState={
           <EmptyState
-            icon={<UsersThree size={48} />}
+            icon={<UsersThree size={40} />}
             heading="No users found"
+            subtext="Invite your first user to get started."
           />
         }
       />

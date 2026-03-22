@@ -19,18 +19,22 @@ export function DetailHeader({ title, subtitle, backTo, backLabel = 'Back', acti
         {backTo && (
           <button
             onClick={() => navigate(backTo)}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-slate-400 dark:text-neutral-500 hover:text-primary-600
+              mb-2.5 transition-colors duration-200 group"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft
+              size={14}
+              className="group-hover:-translate-x-0.5 transition-transform duration-200"
+            />
             {backLabel}
           </button>
         )}
-        <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">{title}</h1>
         {subtitle != null && subtitle !== '' && (
-          <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">{subtitle}</p>
         )}
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && <div className="flex gap-2.5">{actions}</div>}
     </div>
   );
 }

@@ -1,13 +1,39 @@
 # Inventory Management System (IMS)
 
-A full-stack multi-tenant Inventory Management System built with FastAPI + React.
+A full-stack **multi-tenant** inventory management application: **FastAPI** backend, **PostgreSQL** with row-level security, **Redis** for auth/session support, **React** SPA with **Vite**, **Tailwind CSS**, and **Nginx** as the edge proxy.
 
-## Quick Start
+This document describes **functionality**, **APIs**, **configuration**, **testing**, and **notable implementation details** (including recent UI and data-model updates).
+
+---
+
+## Table of contents
+
+- [Quick start](#quick-start)
+- [What the app does](#what-the-app-does)
+- [Default credentials](#default-credentials)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Frontend application](#frontend-application)
+- [Backend domain rules](#backend-domain-rules)
+- [REST API reference](#rest-api-reference)
+- [Authentication & multi-tenancy](#authentication--multi-tenancy)
+- [Environment variables](#environment-variables)
+- [Security (summary)](#security-summary)
+- [Orders & inventory lifecycle](#orders--inventory-lifecycle)
+- [Database & seed data](#database--seed-data)
+- [Testing & coverage](#testing--coverage)
+- [Continuous integration](#continuous-integration)
+- [API documentation (Swagger)](#api-documentation-swagger)
+- [Resetting the database](#resetting-the-database-docker)
+
+---
+
+## Quick start
 
 ```bash
 # 1. Copy and configure environment variables
 cp .env.example .env
-# Edit .env if needed (defaults work out of the box)
+# Edit .env if needed (defaults work for local Docker)
 
 # 2. Start all services
 docker compose up --build
@@ -16,9 +42,29 @@ docker compose up --build
 http://localhost
 ```
 
-The seed script runs automatically on first startup when `SEED_ON_STARTUP=true` (see `.env.example`).
+- **API (via Nginx):** `http://localhost/api/...`
+- **Interactive API docs:** `http://localhost/api/docs`
 
-## Default Credentials
+The seed script runs automatically on **first startup** when `SEED_ON_STARTUP=true` (see `.env.example`).
+
+After pulling schema changes, ensure migrations apply: **`alembic upgrade head`** inside the API container (or from `backend/` locally).
+
+---
+
+## What the app does
+
+| Area | Capabilities |
+| ---- | ------------ |
+| **Tenants** | Admin CRUD; each tenant has a display id (e.g. `TEN-001`), name, active/inactive status. |
+| **Products** | SKU, name, category, unit, cost, reorder threshold, active/inactive; **inventory row auto-created** with product. Categories/units support **creatable combobox** on edit (add new values from UI when allowed). |
+| **Inventory** | Per-product stock; list/detail; **quick update** of current quantity; attention summary when below reorder. |
+| **Orders** | Create with product + quantity; statuses `created` \| `pending` \| `confirmed` \| `cancelled`; **confirm** deducts stock; **cancel** before confirm; **delete** restores stock if was confirmed. Filters, search, sort, pagination on lists. |
+| **Users (admin)** | List users, invite by email (Resend), change role, **tenant access** checkboxes, delete user. |
+| **Auth** | Email/password login, JWT access + refresh, logout (Redis blacklist), optional **Google OAuth**, invite registration. |
+
+---
+
+## Default credentials
 
 | Role  | Email (login only) | Display name         | Password  |
 | ----- | ------------------ | -------------------- | --------- |
@@ -27,177 +73,317 @@ The seed script runs automatically on first startup when `SEED_ON_STARTUP=true` 
 
 Emails are **not** shown in the UI after login; the header and user lists use **display names** only.
 
-After pulling changes, run **`alembic upgrade head`** inside the API container (or locally from `backend/`) so migrations apply — including order status **`confirmed`** and related constraints.
-
 ### Inviting users (admin)
 
-Admins use **Users → Invite user**: enter an email. The API creates a **user invite** and sends a **Resend** email with a link to `/register/invite?token=…` where the person sets their **name** and **password**. They are created with the **user** role.
+**Users → Invite user:** enter an email. The API creates an invite and sends a **Resend** email with a link to `/register/invite?token=…` where the user sets **name** and **password** (role **user**).
 
 Configure in `.env`:
 
-- **`RESEND_API_KEY`** — from [Resend](https://resend.com); **required** — invitations fail with **503** if unset.
-- **`RESEND_FROM_EMAIL`** — verified sender (e.g. `IMS <onboarding@resend.dev>` for quick tests).
-- **`PUBLIC_APP_URL`** — where the SPA is reachable (e.g. `http://localhost` behind nginx); used in the email link.
+- **`RESEND_API_KEY`** — required; invitations return **503** if unset.
+- **`RESEND_FROM_EMAIL`** — verified sender.
+- **`PUBLIC_APP_URL`** — SPA base URL for links (e.g. `http://localhost`).
+
+---
 
 ## Architecture
 
 ```
 inventory-management-system/
-├── backend/          FastAPI 3.12 — REST API
+├── backend/                 # FastAPI — REST API under /api/v1
 │   ├── app/
-│   │   ├── auth/     JWT auth, bcrypt, Redis blacklist
-│   │   ├── tenants/  Multi-tenant CRUD (TEN-XXX IDs)
-│   │   ├── products/ Product CRUD (SKU immutable)
-│   │   ├── inventory/Inventory + stock management
-│   │   ├── orders/   Orders + state machine (pending / created / confirmed / cancelled)
-│   │   └── users/    Admin-only user management + tenant assignments
-│   └── tests/        pytest test suite
-└── frontend/         React 18 + Vite + TypeScript + Tailwind
-    └── src/
-        ├── store/    Redux Toolkit (auth + tenant slices)
-        ├── api/      Axios client + per-entity API modules
-        ├── hooks/    Custom data-fetching hooks
-        ├── components/ Shared UI components
-        └── pages/    Feature pages
+│   │   ├── auth/            # JWT, bcrypt, invites, Google OAuth, Redis deps
+│   │   ├── tenants/       # Multi-tenant CRUD (TEN-XXX display ids)
+│   │   ├── products/      # Product CRUD; SKU immutable after create
+│   │   ├── inventory/     # Stock per product; PATCH for quantity
+│   │   ├── orders/        # Orders + confirm/cancel/delete semantics
+│   │   ├── users/         # Admin user management + tenant assignments
+│   │   ├── email/         # Resend integration (invite emails)
+│   │   ├── seed.py        # Optional startup seed (see below)
+│   │   └── main.py        # App factory, router registration, /health
+│   ├── alembic/           # Migrations
+│   ├── tests/             # pytest (integration + unit)
+│   └── pyproject.toml
+├── frontend/               # React 18 + Vite + TypeScript
+│   └── src/
+│       ├── api/             # Axios client + per-resource modules
+│       ├── store/           # Redux Toolkit (auth slice)
+│       ├── contexts/        # Theme (light/dark)
+│       ├── hooks/           # Data fetching, tenant, auth
+│       ├── components/      # Layout, tables, forms, UI primitives
+│       └── pages/         # Route-level screens
+├── nginx/                   # Reverse proxy; rate limits; /api → API, / → Vite
+├── .github/workflows/       # CI: backend tests + coverage
+└── docker-compose.yml       # nginx, api, frontend, db, redis
 ```
 
-## Stack
+---
 
-| Layer       | Technology                                |
-| ----------- | ----------------------------------------- |
-| Frontend    | React 18, Vite, TypeScript, Tailwind CSS  |
-| State       | Redux Toolkit                             |
-| Forms       | react-hook-form + zod                     |
-| HTTP client | Axios (JWT + X-Tenant-Id interceptors)    |
-| Backend     | Python 3.12 + FastAPI                     |
-| ORM         | SQLAlchemy 2.0 (asyncio)                  |
-| DB          | PostgreSQL 16 with RLS                    |
-| Cache       | Redis 7 (token blacklist + rate limiting) |
-| Auth        | JWT (access 15m + refresh 7d)             |
-| Proxy       | Nginx                                     |
-| Containers  | Docker Compose                            |
+## Technology stack
 
-## Assumptions
+| Layer | Technology |
+| ----- | ---------- |
+| Frontend | React 18, Vite 5, TypeScript, Tailwind CSS |
+| UI | `@phosphor-icons/react`, `sonner` (toasts), `recharts` (dashboard charts) |
+| State | Redux Toolkit (`auth`; tenant context via hooks + `localStorage`) |
+| Forms | `react-hook-form` + `zod` + `@hookform/resolvers` |
+| HTTP | Axios (JWT + `X-Tenant-Id` interceptors) |
+| Backend | Python 3.12, FastAPI |
+| ORM | SQLAlchemy 2.0 (async) |
+| DB | PostgreSQL 16 (RLS for tenant isolation) |
+| Redis | **Not used for application caching** — token blacklist, OAuth state, login rate limiting |
+| Auth | JWT (access + refresh), optional Google OAuth |
+| Proxy | Nginx |
+| Containers | Docker Compose |
 
-- **Tenant list default sort**: With no column sort active, the tenant table is ordered with **active** tenants first, then **inactive**; within each status group, rows are sorted by **created_at descending** (newest first). Column headers cycle sort: **asc → desc → default**; only one column sort applies at a time. **Name** sorting is **case-insensitive** (A–Z by letter, ignoring capitalization).
+---
 
-## Key Features
+## Frontend application
 
-- **Multi-tenancy**: Row-Level Security enforced at DB level; tenant selected via header dropdown
-- **RBAC**: Admin (full access) vs User (CRUD on tenant-scoped data)
-- **Order state machine**: See [Orders & inventory](#orders--inventory) below
-- **Inventory management**: Auto-created on product creation; inline current-inventory updates on list and detail
-- **Display IDs**: TEN-001 (tenants), ORD-1001 (per-tenant orders)
-- **JWT rotation**: Refresh token rotated on every refresh; Redis blacklist for real logout
+### Routing (authenticated)
 
-## Security
+| Path | Role | Description |
+| ---- | ---- | ----------- |
+| `/` | All | Dashboard (tenant-scoped KPIs, charts, recent orders when tenant selected) |
+| `/tenants`, `/tenants/new`, `/tenants/:id`, `/tenants/:id/edit` | **Admin** | Tenants |
+| `/products`, `/products/new`, `/products/:id`, `/products/:id/edit` | All | Products |
+| `/inventory`, `/inventory/:id` | All | Inventory |
+| `/orders`, `/orders/new`, `/orders/:id`, `/orders/:id/edit` | All | Orders |
+| `/users`, `/users/new`, `/users/:id` | **Admin** | Users & invites |
 
-Defense-in-depth controls in this stack. **Configurable** items show **defaults** from code / `.env.example`.
+Public routes: `/login`, `/auth/oauth-callback`, `/register/invite`.
 
-### Nginx (edge proxy)
+### Key UX behaviors
 
-| Control            | Detail                                                                                                                     |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| **Rate limiting**  | **`auth`** zone: **5 requests/minute** per client IP; **`api`** zone: **600 requests/minute** per IP (`nginx/nginx.conf`). |
-| **Auth routes**    | **`/api/v1/auth/login`**, **`register`**, **`register-invite`**: `limit_req zone=auth burst=5 nodelay`.                    |
-| **Invite preview** | **`/api/v1/auth/invite/`**: `auth` zone with **`burst=10`**.                                                               |
-| **General API**    | **`/api/`**: `limit_req zone=api burst=20 nodelay`.                                                                        |
-| **HTTP headers**   | **`X-Content-Type-Options: nosniff`**, **`X-Frame-Options: DENY`**, **`X-XSS-Protection: 1; mode=block`**.                 |
-| **Body size**      | **`client_max_body_size 1m`**.                                                                                             |
-| **Forwarding**     | **`X-Real-IP`**, **`X-Forwarded-For`**, **`X-Forwarded-Proto`** to the API.                                                |
+- **Theme:** Light/dark toggle (persisted); Tailwind `class` dark mode; orange primary palette.
+- **Tenant selection:** Searchable header dropdown; **`X-Tenant-Id`** sent on tenant-scoped API calls. Without a tenant, dashboard shows a **select tenant** prompt (no tenant-scoped KPIs).
+- **Sidebar:** Collapsible; **IMS** / logo expands when collapsed.
+- **Lists:** Sortable columns where implemented; **pagination** only when total pages > 1.
+- **Products:** Pagination; category/unit **creatable combobox** on edit.
+- **Orders:** Summary tiles (totals by status); **status filter pills**; **Created** status uses **sky blue** styling consistently with dashboard (badges, tiles, bar chart).
+- **Order detail:** Requested quantity **white** when stock covers the request; **red** when insufficient; **muted** when cancelled; **Confirm** / **Delete** styled as secondary outline buttons.
+- **Users detail:** User **name** in header only; info cards show **Role**, **Tenant access**, **Joined** (no duplicate name card or role subtitle).
 
-Brute-force and abuse against login, registration, and invite flows are throttled at the edge before FastAPI.
+---
 
-### Invitation links (token handling & expiry)
+## Backend domain rules
 
-| Control                | Detail                                                                                                                                                                     |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **No raw token in DB** | Only **SHA-256** of the token is stored; the **raw token** is only in the **email link** and in transit.                                                                   |
-| **Time-limited**       | **`expires_at`** enforced in code. TTL = **`INVITE_EXPIRE_HOURS`** (default **`168`** = 7 days). Use **`INVITE_EXPIRE_HOURS=24`** for 24-hour links.                       |
-| **Single use**         | **`register-invite`** sets **`consumed_at`**; token cannot be reused.                                                                                                      |
-| **Invalid / expired**  | No matching valid invite → **404** (or equivalent) for bad links.                                                                                                          |
-| **Re-invite**          | Pending invites for the same email are **revoked** before a new one is created.                                                                                            |
-| **API validation**     | Preview: **`min_length`** on `token` query; register-invite: **min token length** in Pydantic.                                                                             |
-| **Verification**       | **`GET /auth/invite/preview`** and **`POST /auth/register-invite`** both **hash the token** and run **expiry / consumed** checks before returning data or creating a user. |
+### Order creation (business rule)
 
-### Authentication & session (backend)
+When an order is **created** via the API:
 
-| Control              | Detail                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| **Passwords**        | **bcrypt** (Passlib), **`bcrypt__rounds=12`**.                                             |
-| **JWT**              | **HS256**; secret from **`JWT_SECRET`**.                                                   |
-| **Access / refresh** | Defaults: **`ACCESS_TOKEN_EXPIRE_MINUTES=15`**, **`REFRESH_TOKEN_EXPIRE_DAYS=7`**.         |
-| **Refresh rotation** | Old refresh token **blacklisted** when issuing a new pair.                                 |
-| **Logout**           | **Redis** blacklist (`blacklist:` prefix) so logged-out / rotated tokens are not reusable. |
-| **Login errors**     | Generic **“Invalid email or password”** (no user enumeration).                             |
+- If **`current_stock >= requested_qty`** → status **`created`**.
+- If **`current_stock < requested_qty`** → status **`pending`**.
 
-### Privacy (email vs display name)
+No stock is reserved or deducted at creation time.
 
-| Control                    | Detail                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------- |
-| **`/me` / `UserResponse`** | **Email omitted**; UI uses **display name**.                                                   |
-| **Admin user list**        | **Name**, role, tenant access — **not** login email.                                           |
-| **Invite preview**         | Invited **email** shown only to callers who have the **secret token** (UX for the registrant). |
+**Seed data** applies the same rule: order rows are seeded with `created` or `pending` based on each product’s inventory vs requested quantity (not random or positional).
 
-### Multi-tenancy & authorization
+### Redis
 
-| Control               | Detail                                                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **`X-Tenant-Id`**     | Required for tenant-scoped APIs; validated as **UUID**.                                                        |
-| **Tenant allow-list** | Users with **assignment rows** may only use those tenants; **no rows** = all tenants (`auth/dependencies.py`). |
-| **PostgreSQL RLS**    | Tenant isolation at the database layer.                                                                        |
-| **Admin APIs**        | User management & invitations require **`require_admin`**.                                                     |
+Redis is used for **JWT blacklist**, **OAuth state**, and **login rate limiting** — **not** for caching API responses or database query results.
 
-### Invite email delivery
+---
 
-| Control              | Detail                                                                                            |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| **`RESEND_API_KEY`** | **Required** — missing key → **503** on invite; **no** invite URL returned in JSON as a fallback. |
+## REST API reference
 
-### CORS & secrets
+Base path (behind Nginx): **`/api/v1`**. All tenant-scoped routes require **`Authorization: Bearer <access_token>`** and **`X-Tenant-Id: <tenant_uuid>`** unless noted.
 
-| Control            | Detail                                                                                        |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| **`CORS_ORIGINS`** | Comma-separated allowlist.                                                                    |
-| **Secrets**        | DB, Redis, JWT, Resend — via **`.env`** (see **`.env.example`**); do not commit real secrets. |
+### Auth — `/api/v1/auth`
 
-## Orders & inventory
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| GET | `/google/status` | No | Returns whether Google OAuth is configured. |
+| GET | `/google/start` | No | Starts Google OAuth (optional `invite_token`). |
+| GET | `/google/callback` | No | OAuth redirect handler. |
+| POST | `/google/complete` | No | Exchanges code for app tokens (body). |
+| POST | `/register` | No | Register new user (open registration if enabled by app policy). |
+| GET | `/invite/preview` | No | Preview invite by `token` query. |
+| POST | `/register-invite` | No | Complete registration with invite token. |
+| POST | `/login` | No | Login; returns tokens + user. |
+| POST | `/refresh` | No | Refresh access token (rotation). |
+| POST | `/logout` | Yes | Logout; blacklist refresh token. |
+| GET | `/me` | Yes | Current user (no email in response for privacy). |
+| GET | `/me/accessible-tenants` | Yes | Tenants the user may access. |
 
-Orders use four **statuses** (`created`, `pending`, `confirmed`, `cancelled`):
+### Tenants — `/api/v1/tenants` (typically **admin**)
 
-| Status          | Meaning                                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------------------- |
-| **`pending`**   | Placed when **current stock is below the requested quantity** at creation time. No stock reserved.              |
-| **`created`**   | Placed when **stock was sufficient** at creation time. Still **no deduction** until someone clicks **Confirm**. |
-| **`confirmed`** | User confirmed the order; **stock is reduced** by the requested quantity.                                       |
-| **`cancelled`** | Cancelled before confirmation; **inventory unchanged**.                                                         |
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `` | List tenants (pagination, sort, search). |
+| POST | `` | Create tenant. |
+| GET | `/{tenant_id}` | Get tenant. |
+| PUT | `/{tenant_id}` | Update tenant. |
+| DELETE | `/{tenant_id}` | Delete tenant. |
 
-**Rules:**
+### Products — `/api/v1/products`
 
-- **Create order** — Never changes inventory. Status is `pending` or `created` only.
-- **Confirm** — Allowed for `pending` and `created`. If current stock ≥ requested quantity, stock is deducted and status becomes **`confirmed`**. If not enough stock, the API returns an error.
-- **Cancel** — Only for `pending` or **`created`**. **Confirmed** orders **cannot** be cancelled (no “Cancel order” in the UI; API returns 409).
-- **Delete** — If the order is **`confirmed`**, its quantity is **added back** to inventory before the row is removed. Unconfirmed orders are deleted without inventory changes.
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `` | List products (`X-Tenant-Id`). |
+| POST | `` | Create product (+ inventory). |
+| GET | `/{product_id}` | Get product. |
+| PUT | `/{product_id}` | Update product. |
+| DELETE | `/{product_id}` | Delete product. |
 
-Existing databases created before this flow should run migrations: legacy rows in status `created` that had already been treated as “fulfilled” are migrated to **`confirmed`** so inventory stays consistent.
+### Inventory — `/api/v1/inventory`
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `` | List inventory rows. |
+| GET | `/{inventory_id}` | Get one row. |
+| PATCH | `/{inventory_id}` | Update quantity (and related fields per schema). |
+| DELETE | `/{inventory_id}` | Delete inventory row. |
+
+### Orders — `/api/v1/orders`
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `` | List orders; query params: `page`, `page_size`, `q`, `sort_by`, `sort_dir`, `status`. Response includes **`summary`** counts by status. |
+| POST | `` | Create order (body: product_id, requested_qty, notes). |
+| GET | `/{order_id}` | Get order with product + inventory. |
+| PUT | `/{order_id}` | Update unconfirmed order (qty/notes per rules). |
+| DELETE | `/{order_id}` | Delete order (restores stock if was confirmed). |
+| POST | `/{order_id}/confirm` | Confirm order (deducts stock). |
+| POST | `/{order_id}/cancel` | Cancel if pending/created. |
+
+### Users — `/api/v1/users` (**admin**)
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `` | List users. |
+| POST | `/invitations` | Create invite (email). |
+| GET | `/{user_id}` | User detail + assignments. |
+| PUT | `/{user_id}` | Update user **role** (`UserRoleUpdate`). |
+| DELETE | `/{user_id}` | Delete user. |
+| GET | `/{user_id}/tenants` | Tenant briefs for assignments. |
+| PUT | `/{user_id}/tenant-access` | Set `tenant_ids` (empty = all tenants). |
+
+### Health
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/health` | Liveness: `{ "status": "ok" }` (no `/api` prefix on backend; exposed via service). |
+
+---
+
+## Authentication & multi-tenancy
+
+- **`Authorization`:** `Bearer <access_token>` for protected routes.
+- **`X-Tenant-Id`:** UUID of the active tenant for **tenant-scoped** resources (products, inventory, orders). Validated server-side; combined with **RLS** and user **tenant allow-list** (users with no assignment rows may access all tenants; otherwise restricted to assigned tenants).
+
+---
+
+## Environment variables
+
+See **`.env.example`** for the full list. Important keys:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `DATABASE_URL` | Async SQLAlchemy URL (Postgres in Docker). |
+| `REDIS_URL` | Redis with password. |
+| `JWT_SECRET` | Signing key for JWTs (use a long random value). |
+| `SEED_ON_STARTUP` | If `true`, run seed when DB is empty. |
+| `CORS_ORIGINS` | Allowed browser origins (comma-separated). |
+| `PUBLIC_APP_URL` | Public SPA URL (emails, OAuth redirects). |
+| `RESEND_*`, `INVITE_EXPIRE_HOURS` | Email invites. |
+| `GOOGLE_OAUTH_*` | Optional Google sign-in. |
+
+---
+
+## Security (summary)
+
+Nginx applies **rate limits** (stricter on `/api/v1/auth/*` and Google OAuth), security headers, and forwards client IP headers. The backend uses **bcrypt** passwords, **JWT** access/refresh with **refresh rotation**, **Redis blacklist** on logout, generic login errors, **hashed invite tokens**, and **PostgreSQL RLS**. Details in the original security tables remain valid; see **`nginx/nginx.conf`** and **`app/auth/`** for specifics.
+
+---
+
+## Orders & inventory lifecycle
+
+Orders use statuses **`created`**, **`pending`**, **`confirmed`**, **`cancelled`**:
+
+| Status | Meaning |
+| ------ | ------- |
+| `pending` | At creation, **insufficient** stock for requested quantity. |
+| `created` | At creation, **sufficient** stock; nothing deducted until confirm. |
+| `confirmed` | Stock **deducted** by requested quantity. |
+| `cancelled` | Cancelled before confirmation; inventory unchanged. |
+
+- **Confirm:** Allowed for `pending` and `created` if current stock ≥ requested quantity.
+- **Cancel:** Not allowed for `confirmed` (API/UI).
+- **Delete:** If `confirmed`, quantity is **returned** to inventory before delete.
+
+Legacy DBs may have been migrated so old “fulfilled” semantics align with **`confirmed`** (see Alembic history).
+
+---
+
+## Database & seed data
+
+- **Migrations:** Alembic (`backend/alembic/`).
+- **Seed:** `app/seed.py` — demo users, **17 tenants** (including two original tenants preserved in spirit), products, inventory, and orders. Order statuses in seed follow **inventory vs requested quantity** as in the API.
+
+To re-seed from scratch: [reset volumes](#resetting-the-database-docker) and start with `SEED_ON_STARTUP=true`.
+
+---
+
+## Testing & coverage
+
+```bash
+# In Docker
+docker compose exec api pytest
+
+# Local (from backend/, with test extras)
+pip install -e ".[test]"
+pytest --cov=app --cov-config=.coveragerc --cov-report=term-missing
+```
+
+Coverage config (**`backend/.coveragerc`**) omits **`seed.py`**, **`app/email/*`**, and **`app/auth/oauth_google.py`** (external / non-deterministic paths). The suite targets high coverage of routers, services, and repositories.
+
+---
+
+## Continuous integration
+
+Workflow: **`.github/workflows/tests.yml`**
+
+- Triggers on **push** and **pull_request** to `main` / `master`.
+- Runs on **Ubuntu**, Python **3.12**, installs **`backend`** with **`.[test]`**.
+- Runs **`pytest`** with **`--cov=app`**, **`--cov-fail-under=75`**, uploads **`coverage.xml`** as an artifact.
+
+---
+
+## API documentation (Swagger)
+
+Interactive OpenAPI UI (when the stack is running):
+
+- **`http://localhost/api/docs`**
+- ReDoc: **`http://localhost/api/redoc`**
+- OpenAPI JSON: **`http://localhost/api/openapi.json`**
+
+---
 
 ## Resetting the database (Docker)
 
-Remove volumes so PostgreSQL and Redis start empty. On the next `docker compose up --build`, **`alembic upgrade head`** runs when the API starts, and if **`SEED_ON_STARTUP=true`**, the seed runs on an empty database.
+Remove volumes so PostgreSQL and Redis start empty. On the next `docker compose up --build`, migrations run and, if **`SEED_ON_STARTUP=true`**, seed runs on an empty database.
 
 ```bash
 docker compose down -v
 docker compose up --build
 ```
 
-## Running Tests
+---
 
-```bash
-docker compose exec api pytest
-```
+## Recent updates (documentation snapshot)
 
-From `backend/` with test extras installed: `pip install -e ".[test]"` then `pytest tests/test_orders.py -v` (order lifecycle tests use mocks and do not require Postgres).
+The following are notable evolutions reflected across the codebase and this README:
 
-## API Docs
+| Area | Change |
+| ---- | ------ |
+| **UI / UX** | Orange-forward theme, **light/dark** mode toggle, aligned sidebar/header, collapsible sidebar with expand on logo, searchable **tenant** selector, **creatable** category/unit on product edit, dashboard KPIs/charts/recent orders polish, status colors (**Created** = sky blue) consistent on dashboard and orders. |
+| **Orders** | List filters, pagination when needed, order detail actions and requested-qty styling rules, seed orders follow **inventory ≥ qty → created** else **pending**. |
+| **Users** | User detail: name in header only; **Role** / access / joined in cards (no duplicate name or role subtitle). |
+| **Backend** | Order creation status rule aligned with assignment doc; seed data uses same rule; **Redis** documented as auth/session support, not cache. |
+| **Quality** | Broad **pytest** coverage; **GitHub Actions** runs backend tests with **coverage floor 75%**; **`pytest-cov`** in test extras. |
 
-`http://localhost/api/docs`
+---
+
+## License / assignment
+
+Built as an interview / portfolio project. Adjust this section per your repository policy.

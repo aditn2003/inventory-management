@@ -6,8 +6,13 @@ interface FormCardProps {
 
 export function FormCard({ title, children, className = '' }: FormCardProps) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
-      {title && <h2 className="text-lg font-medium text-gray-900 mb-5">{title}</h2>}
+    <div className={`card p-6 sm:p-8 ${className}`}>
+      {title && (
+        <>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-neutral-100">{title}</h2>
+          <div className="border-b border-slate-100 dark:border-neutral-700 mt-3 mb-6" />
+        </>
+      )}
       {children}
     </div>
   );

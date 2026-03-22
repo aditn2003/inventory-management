@@ -71,6 +71,7 @@ class OrderService:
         display_id = await self.repo.get_next_display_id(tenant_id)
         order_date = date.today()
 
+        # Assignment: if Inventory >= requested qty → Created; else → Pending.
         if inventory.current_stock >= requested_qty:
             order_status = "created"
         else:

@@ -37,7 +37,7 @@ export function ProductDetailPage() {
     }
   };
 
-  if (loading) return <div className="animate-pulse h-8 w-48 bg-gray-200 rounded" />;
+  if (loading) return <div className="shimmer-line h-8 w-48" />;
   if (!product) return null;
 
   const stockValue = product.inventory
@@ -46,8 +46,8 @@ export function ProductDetailPage() {
 
   const stockColorClass =
     product.inventory && product.inventory.current_stock < product.reorder_threshold
-      ? 'text-red-600'
-      : 'text-blue-600';
+      ? 'text-rose-600'
+      : 'text-primary-600';
 
   return (
     <div className="space-y-6">
@@ -60,14 +60,11 @@ export function ProductDetailPage() {
           <>
             <button
               onClick={() => navigate(`/products/${product.id}/edit`)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="btn-secondary"
             >
               Edit
             </button>
-            <button
-              onClick={() => setShowDelete(true)}
-              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-            >
+            <button onClick={() => setShowDelete(true)} className="btn-danger">
               Delete
             </button>
           </>
@@ -87,12 +84,18 @@ export function ProductDetailPage() {
         ]}
       />
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
-        <h2 className="text-sm font-medium text-gray-700">Details</h2>
+      <div className="card p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-slate-800 dark:text-neutral-200">Details</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <div><span className="text-gray-500">Status: </span><StatusBadge status={product.status} /></div>
+          <div>
+            <span className="text-slate-500 dark:text-neutral-400">Status: </span>
+            <StatusBadge status={product.status} />
+          </div>
           {product.description && (
-            <div className="col-span-2"><span className="text-gray-500">Description: </span>{product.description}</div>
+            <div className="col-span-2">
+              <span className="text-slate-500 dark:text-neutral-400">Description: </span>
+              <span className="text-slate-700 dark:text-neutral-300">{product.description}</span>
+            </div>
           )}
         </div>
       </div>

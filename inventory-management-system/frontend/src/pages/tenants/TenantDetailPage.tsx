@@ -37,7 +37,7 @@ export function TenantDetailPage() {
     }
   };
 
-  if (loading) return <div className="animate-pulse h-8 w-48 bg-gray-200 rounded" />;
+  if (loading) return <div className="shimmer-line h-8 w-48" />;
   if (!tenant) return null;
 
   return (
@@ -50,16 +50,10 @@ export function TenantDetailPage() {
         actions={
           user?.role === 'admin' ? (
             <>
-              <button
-                onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={() => navigate(`/tenants/${tenant.id}/edit`)} className="btn-secondary">
                 Edit
               </button>
-              <button
-                onClick={() => setShowDelete(true)}
-                className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-              >
+              <button onClick={() => setShowDelete(true)} className="btn-danger">
                 Delete
               </button>
             </>

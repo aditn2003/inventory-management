@@ -1,0 +1,5 @@
+[run]
+omit =
+    app/seed.py
+    app/email/*
+    app/auth/oauth_google.py
