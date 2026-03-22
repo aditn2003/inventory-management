@@ -13,9 +13,9 @@ interface ActionMenuProps {
 }
 
 const variantClasses: Record<string, string> = {
-  default: 'text-gray-700 hover:bg-gray-100',
-  danger: 'text-red-600 hover:bg-red-50',
-  warning: 'text-amber-600 hover:bg-amber-50',
+  default: 'text-slate-700 hover:bg-slate-50 dark:text-neutral-300 dark:hover:bg-neutral-700',
+  danger: 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10',
+  warning: 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10',
 };
 
 export function ActionMenu({ items }: ActionMenuProps) {
@@ -28,8 +28,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
     setPos({
-      top: rect.bottom + 4,
-      left: rect.right - 176, // 176px = w-44 (11rem)
+      top: rect.bottom + 6,
+      left: rect.right - 176,
     });
   }, []);
 
@@ -57,6 +57,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
     };
   }, [open, updatePosition]);
 
+  const dangerIdx = items.findIndex((i) => i.variant === 'danger');
+
   return (
     <>
       <button
@@ -65,7 +67,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors"
+        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-700 text-slate-400 dark:text-neutral-500 hover:text-slate-600 dark:hover:text-neutral-300
+          transition-colors duration-150"
         aria-label="Actions"
       >
         <DotsThreeVertical size={20} weight="bold" />
@@ -75,24 +78,31 @@ export function ActionMenu({ items }: ActionMenuProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+            className="fixed w-44 bg-white dark:bg-neutral-800 border border-slate-200/80 dark:border-neutral-700/80 rounded-xl
+              shadow-elevated z-50 animate-scale-in overflow-hidden"
             style={{ top: pos.top, left: Math.max(pos.left, 8) }}
             onClick={(e) => e.stopPropagation()}
           >
-            {items.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => {
-                  setOpen(false);
-                  item.onClick();
-                }}
-                className={`w-full text-left px-4 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                  variantClasses[item.variant ?? 'default']
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+            <div className="p-1">
+              {items.map((item, idx) => (
+                <span key={item.label}>
+                  {idx === dangerIdx && dangerIdx > 0 && (
+                    <div className="border-t border-slate-100 dark:border-neutral-700 my-1" />
+                  )}
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      item.onClick();
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150 ${
+                      variantClasses[item.variant ?? 'default']
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>,
           document.body
         )}

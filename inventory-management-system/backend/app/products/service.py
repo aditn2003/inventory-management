@@ -13,9 +13,7 @@ class ProductService:
         self.session = session
         self.repo = ProductRepository(session)
 
-    VALID_CATEGORIES = ("Metals", "Chemicals", "Plastics")
     VALID_STATUSES = ("active", "inactive")
-    VALID_UNITS = ("units", "kg", "sheets", "litres")
 
     async def list_products(
         self,
@@ -43,9 +41,8 @@ class ProductService:
         return product
 
     async def create_product(self, tenant_id: UUID, data: dict, unit: str = "units") -> Product:
-        category = data.get("category")
-        if category not in self.VALID_CATEGORIES:
-            raise ValueError(f"Category must be one of: {', '.join(self.VALID_CATEGORIES)}.")
+        if not data.get("category", "").strip():
+            raise ValueError("Category is required.")
         status = data.get("status", "active")
         if status not in self.VALID_STATUSES:
             raise ValueError(f"Status must be one of: {', '.join(self.VALID_STATUSES)}.")
@@ -75,8 +72,8 @@ class ProductService:
             raise ValueError("SKU cannot be changed after product creation.")
 
         category = data.get("category")
-        if category and category not in self.VALID_CATEGORIES:
-            raise ValueError(f"Category must be one of: {', '.join(self.VALID_CATEGORIES)}.")
+        if category is not None and not category.strip():
+            raise ValueError("Category cannot be empty.")
 
         # Remove None values
         update_data = {k: v for k, v in data.items() if v is not None and k != "sku"}

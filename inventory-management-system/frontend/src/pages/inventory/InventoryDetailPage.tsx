@@ -36,7 +36,7 @@ export function InventoryDetailPage() {
     }
   };
 
-  if (loading) return <div className="animate-pulse h-8 w-48 bg-gray-200 rounded" />;
+  if (loading) return <div className="shimmer-line h-8 w-48" />;
   if (!item) return null;
 
   return (
@@ -46,7 +46,9 @@ export function InventoryDetailPage() {
           item.product ? (
             <Link
               to={`/products/${item.product.id}`}
-              className="text-inherit hover:text-blue-700 hover:underline underline-offset-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="text-inherit hover:text-primary-600 hover:underline underline-offset-2
+                rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30
+                focus-visible:ring-offset-2 transition-colors"
             >
               {item.product.name}
             </Link>
@@ -58,11 +60,7 @@ export function InventoryDetailPage() {
         backTo="/inventory"
         backLabel="Inventory"
         actions={
-          <button
-            type="button"
-            onClick={() => setShowDelete(true)}
-            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-          >
+          <button type="button" onClick={() => setShowDelete(true)} className="btn-danger">
             Delete
           </button>
         }

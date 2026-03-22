@@ -10,7 +10,7 @@ export interface Product {
   sku: string;
   name: string;
   description: string | null;
-  category: 'Metals' | 'Chemicals' | 'Plastics';
+  category: string;
   cost_per_unit: number;
   reorder_threshold: number;
   status: 'active' | 'inactive';

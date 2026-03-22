@@ -34,7 +34,6 @@ class Product(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     __table_args__ = (
-        CheckConstraint("category IN ('Metals', 'Chemicals', 'Plastics')", name="products_category_check"),
         CheckConstraint("status IN ('active', 'inactive')", name="products_status_check"),
         CheckConstraint("reorder_threshold >= 0", name="products_reorder_threshold_check"),
         CheckConstraint("cost_per_unit > 0", name="products_cost_per_unit_check"),

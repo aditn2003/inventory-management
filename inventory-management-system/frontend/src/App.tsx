@@ -7,37 +7,31 @@ import { logout, setCredentials } from '@/store/authSlice';
 import { authApi } from '@/api/auth';
 import { Layout } from '@/components/Layout/Layout';
 import { AuthGuard } from '@/components/AuthGuard';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage';
 import { RegisterInvitePage } from '@/pages/RegisterInvitePage';
+import { DashboardPage } from '@/pages/DashboardPage';
 
-// Tenant pages
 import { TenantListPage } from '@/pages/tenants/TenantListPage';
 import { TenantDetailPage } from '@/pages/tenants/TenantDetailPage';
 import { TenantEditPage } from '@/pages/tenants/TenantEditPage';
 
-// Product pages
 import { ProductListPage } from '@/pages/products/ProductListPage';
 import { ProductDetailPage } from '@/pages/products/ProductDetailPage';
 import { ProductEditPage } from '@/pages/products/ProductEditPage';
 
-// Inventory pages
 import { InventoryListPage } from '@/pages/inventory/InventoryListPage';
 import { InventoryDetailPage } from '@/pages/inventory/InventoryDetailPage';
 
-// Order pages
 import { OrderListPage } from '@/pages/orders/OrderListPage';
 import { OrderDetailPage } from '@/pages/orders/OrderDetailPage';
 import { OrderEditPage } from '@/pages/orders/OrderEditPage';
 
-// User pages (admin only)
 import { UserListPage } from '@/pages/users/UserListPage';
 import { UserInvitePage } from '@/pages/users/UserInvitePage';
 import { UserDetailPage } from '@/pages/users/UserDetailPage';
 
-// Validates the stored access token with the server on startup.
-// If the token is expired or invalid, clears auth state so the login page
-// is shown instead of a redirect loop.
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
@@ -69,8 +63,8 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-surface dark:bg-surface-dark">
+        <div className="w-7 h-7 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -86,12 +80,10 @@ function AppRoutes() {
         <Route path="/auth/oauth-callback" element={<OAuthCallbackPage />} />
         <Route path="/register/invite" element={<RegisterInvitePage />} />
 
-        {/* Protected routes */}
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="/products" replace />} />
+            <Route index element={<DashboardPage />} />
 
-            {/* Tenants — admin only */}
             <Route element={<AuthGuard requiredRole="admin" />}>
               <Route path="tenants" element={<TenantListPage />} />
               <Route path="tenants/new" element={<TenantEditPage />} />
@@ -99,23 +91,19 @@ function AppRoutes() {
               <Route path="tenants/:id/edit" element={<TenantEditPage />} />
             </Route>
 
-            {/* Products */}
             <Route path="products" element={<ProductListPage />} />
             <Route path="products/new" element={<ProductEditPage />} />
             <Route path="products/:id" element={<ProductDetailPage />} />
             <Route path="products/:id/edit" element={<ProductEditPage />} />
 
-            {/* Inventory */}
             <Route path="inventory" element={<InventoryListPage />} />
             <Route path="inventory/:id" element={<InventoryDetailPage />} />
 
-            {/* Orders */}
             <Route path="orders" element={<OrderListPage />} />
             <Route path="orders/new" element={<OrderEditPage />} />
             <Route path="orders/:id" element={<OrderDetailPage />} />
             <Route path="orders/:id/edit" element={<OrderEditPage />} />
 
-            {/* Users — admin only */}
             <Route element={<AuthGuard requiredRole="admin" />}>
               <Route path="users" element={<UserListPage />} />
               <Route path="users/new" element={<UserInvitePage />} />
@@ -124,20 +112,40 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/products" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
+function ThemedToaster() {
+  const { theme } = useTheme();
+  return (
+    <Toaster
+      position="top-right"
+      richColors
+      theme={theme}
+      toastOptions={{
+        className: 'font-sans',
+        style: {
+          borderRadius: '0.75rem',
+          fontSize: '0.875rem',
+        },
+      }}
+    />
+  );
+}
+
 function App() {
   return (
-    <Provider store={store}>
-      <AppInitializer>
-        <AppRoutes />
-      </AppInitializer>
-      <Toaster position="top-right" richColors />
-    </Provider>
+    <ThemeProvider>
+      <Provider store={store}>
+        <AppInitializer>
+          <AppRoutes />
+        </AppInitializer>
+        <ThemedToaster />
+      </Provider>
+    </ThemeProvider>
   );
 }
 

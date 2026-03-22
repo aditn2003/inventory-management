@@ -26,11 +26,15 @@ export function TenantEditPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<TenantFormValues>({
     resolver: zodResolver(tenantSchema),
     defaultValues: { status: 'active' },
   });
+
+  const statusValue = watch('status');
 
   useEffect(() => {
     if (!isNew && id) {
@@ -65,42 +69,58 @@ export function TenantEditPage() {
         backLabel="Tenants"
       />
 
-      <FormCard>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+      <FormCard title={isNew ? 'Tenant Details' : undefined}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-1.5">
+              Name <span className="text-rose-500">*</span>
+            </label>
             <input
               {...register('name')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
               placeholder="Alpha Manufacturing"
             />
-            {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name.message}</p>}
+            {errors.name && <p className="text-xs text-rose-600 mt-1">{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              {...register('status')}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <span className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2">Tenant Status</span>
+            <div className="inline-flex rounded-xl border border-slate-200 dark:border-neutral-700 p-1 bg-slate-50/80 dark:bg-neutral-950/80">
+              <button
+                type="button"
+                onClick={() => setValue('status', 'active', { shouldValidate: true, shouldDirty: true })}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  statusValue === 'active'
+                    ? 'bg-white dark:bg-neutral-900 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-slate-200/80 dark:ring-neutral-700/80'
+                    : 'text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-300'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue('status', 'inactive', { shouldValidate: true, shouldDirty: true })}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  statusValue === 'inactive'
+                    ? 'bg-white dark:bg-neutral-900 text-primary-700 dark:text-primary-300 shadow-sm ring-1 ring-slate-200/80 dark:ring-neutral-700/80'
+                    : 'text-slate-500 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-300'
+                }`}
+              >
+                Inactive
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              {submitting ? 'Saving...' : isNew ? 'Create' : 'Save Changes'}
+          <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-neutral-700">
+            <button type="submit" disabled={submitting} className="btn-primary">
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </span>
+              ) : isNew ? 'Create' : 'Save Changes'}
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/tenants')}
-              className="border border-gray-300 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={() => navigate('/tenants')} className="btn-secondary">
               Cancel
             </button>
           </div>

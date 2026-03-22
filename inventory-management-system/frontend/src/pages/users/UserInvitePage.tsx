@@ -42,42 +42,41 @@ export function UserInvitePage() {
     <div className="space-y-6">
       <DetailHeader
         title="Invite user"
-        subtitle="They’ll get an email to choose their own name and password. New accounts are created as User role."
+        subtitle="They'll get an email to choose their own name and password. New accounts are created as User role."
         backTo="/users"
         backLabel="Users"
       />
 
-      <FormCard>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
+      <FormCard title="Send Invitation">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-1.5">
+              Email address <span className="text-rose-500">*</span>
+            </label>
             <input
               {...register('email')}
               type="email"
               autoComplete="off"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field"
               placeholder="colleague@company.com"
             />
-            {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
-            <p className="text-xs text-gray-500 mt-1">
-              The server must have <code className="text-xs bg-gray-100 px-1 rounded">RESEND_API_KEY</code> set;
+            {errors.email && <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>}
+            <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1.5">
+              The server must have <code className="text-xs bg-slate-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">RESEND_API_KEY</code> set;
               otherwise invitations cannot be sent.
             </p>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              {submitting ? 'Sending…' : 'Send invitation'}
+          <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-neutral-700">
+            <button type="submit" disabled={submitting} className="btn-primary">
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Sending...
+                </span>
+              ) : 'Send invitation'}
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/users')}
-              className="border border-gray-300 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={() => navigate('/users')} className="btn-secondary">
               Cancel
             </button>
           </div>

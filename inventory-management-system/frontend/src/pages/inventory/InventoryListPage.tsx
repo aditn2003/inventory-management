@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stack, Buildings, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { Stack, Buildings, CaretLeft, CaretRight, MagnifyingGlass } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useInventory } from '@/hooks/useInventory';
 import { inventoryApi } from '@/api/inventory';
@@ -28,9 +28,7 @@ export function InventoryListPage() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<InventorySortState>(null);
   const [deleteTarget, setDeleteTarget] = useState<Inventory | null>(null);
-  /** Table shows only rows where current stock is below reorder threshold (server-filtered). */
   const [filterBelowReorder, setFilterBelowReorder] = useState(false);
-  /** Bump per row so ActionMenu "Edit" opens the inline inventory editor. */
   const [stockEditVersion, setStockEditVersion] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -85,14 +83,7 @@ export function InventoryListPage() {
   const columns = [
     {
       key: 'name',
-      header: (
-        <InventorySortHeader
-          label="Product name"
-          field="product_name"
-          sort={sort}
-          onSortClick={handleSortClick}
-        />
-      ),
+      header: <InventorySortHeader label="Product name" field="product_name" sort={sort} onSortClick={handleSortClick} />,
       render: (inv: Inventory) => inv.product?.name ?? '—',
     },
     {
@@ -102,27 +93,13 @@ export function InventoryListPage() {
     },
     {
       key: 'cost_per_unit',
-      header: (
-        <InventorySortHeader
-          label="Cost per unit"
-          field="cost_per_unit"
-          sort={sort}
-          onSortClick={handleSortClick}
-        />
-      ),
+      header: <InventorySortHeader label="Cost per unit" field="cost_per_unit" sort={sort} onSortClick={handleSortClick} />,
       render: (inv: Inventory) =>
         inv.product != null ? `$${Number(inv.product.cost_per_unit).toFixed(2)}` : '—',
     },
     {
       key: 'current_inventory',
-      header: (
-        <InventorySortHeader
-          label="Current inventory"
-          field="current_stock"
-          sort={sort}
-          onSortClick={handleSortClick}
-        />
-      ),
+      header: <InventorySortHeader label="Current inventory" field="current_stock" sort={sort} onSortClick={handleSortClick} />,
       render: (inv: Inventory) => (
         <InventoryQuickUpdate
           current={inv.current_stock}
@@ -138,14 +115,7 @@ export function InventoryListPage() {
     },
     {
       key: 'reorder',
-      header: (
-        <InventorySortHeader
-          label="Reorder threshold"
-          field="reorder_threshold"
-          sort={sort}
-          onSortClick={handleSortClick}
-        />
-      ),
+      header: <InventorySortHeader label="Reorder threshold" field="reorder_threshold" sort={sort} onSortClick={handleSortClick} />,
       render: (inv: Inventory) => inv.product?.reorder_threshold ?? '—',
     },
     {
@@ -174,10 +144,13 @@ export function InventoryListPage() {
   if (!selectedTenant) {
     return (
       <div className="space-y-5">
-        <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Inventory</h1>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">Monitor stock levels and reorder status</p>
+        </div>
+        <div className="card">
           <EmptyState
-            icon={<Buildings size={48} />}
+            icon={<Buildings size={40} />}
             heading="No tenant selected"
             subtext="Choose a tenant from the dropdown above to view inventory."
           />
@@ -188,9 +161,12 @@ export function InventoryListPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Inventory</h1>
+        <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">Monitor stock levels and reorder status</p>
+      </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-rose-600">{error}</p>}
 
       {data?.summary && (
         <InventoryAttentionSummary
@@ -208,13 +184,16 @@ export function InventoryListPage() {
       )}
 
       <div className="flex items-center gap-3">
-        <input
-          type="search"
-          placeholder="Search by product name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-        />
+        <div className="relative">
+          <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" />
+          <input
+            type="search"
+            placeholder="Search by product name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field pl-10 w-72"
+          />
+        </div>
       </div>
 
       <DataTable
@@ -224,7 +203,7 @@ export function InventoryListPage() {
         onRowClick={(inv) => navigate(`/inventory/${inv.id}`)}
         emptyState={
           <EmptyState
-            icon={<Stack size={48} />}
+            icon={<Stack size={40} />}
             heading={filterBelowReorder ? 'No items below threshold' : 'No inventory found'}
             subtext={
               filterBelowReorder
@@ -235,36 +214,52 @@ export function InventoryListPage() {
         }
       />
 
-      {!loading && total > 0 && (
+      {!loading && totalPages > 1 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             Showing{' '}
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-slate-700 dark:text-neutral-300">
               {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
             </span>{' '}
-            of <span className="font-medium text-gray-900">{total}</span>
+            of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
             >
-              <CaretLeft size={16} />
-              Previous
+              <CaretLeft size={14} /> Previous
             </button>
-            <span className="text-sm text-gray-600 px-2 tabular-nums">
-              Page {page} of {totalPages}
-            </span>
+            <div className="flex items-center gap-1 px-2">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                const pg = i + 1;
+                return (
+                  <button
+                    key={pg}
+                    onClick={() => setPage(pg)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200
+                      ${page === pg
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-slate-500 dark:text-neutral-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
+                      }`}
+                  >
+                    {pg}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && (
+                <span className="text-sm text-slate-400 dark:text-neutral-500 px-1">... {totalPages}</span>
+              )}
+            </div>
             <button
               type="button"
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
             >
-              Next
-              <CaretRight size={16} />
+              Next <CaretRight size={14} />
             </button>
           </div>
         </div>

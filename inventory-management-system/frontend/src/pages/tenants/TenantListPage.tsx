@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Buildings, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { Plus, Buildings, CaretLeft, CaretRight, MagnifyingGlass } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { useTenants } from '@/hooks/useTenants';
 import { tenantsApi } from '@/api/tenants';
@@ -110,17 +110,17 @@ export function TenantListPage() {
     },
   ];
 
-  if (error) return <p className="text-red-600">{error}</p>;
+  if (error) return <p className="text-rose-600">{error}</p>;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Tenants</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-neutral-100">Tenants</h1>
+          <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1">Manage organizations and tenant accounts</p>
+        </div>
         {user?.role === 'admin' && (
-          <button
-            onClick={() => navigate('/tenants/new')}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <button onClick={() => navigate('/tenants/new')} className="btn-primary">
             <Plus size={16} />
             New Tenant
           </button>
@@ -130,21 +130,27 @@ export function TenantListPage() {
       {data?.summary && (
         <SummaryTiles
           tiles={[
-            { label: 'Total Tenants', value: data.summary.total },
-            { label: 'Active', value: data.summary.active, colorClass: 'text-green-700' },
-            { label: 'Inactive', value: data.summary.inactive, colorClass: 'text-gray-500' },
+            { label: 'Total Tenants', value: data.summary.total,
+              icon: <Buildings size={20} className="text-sky-600 dark:text-sky-400" />, iconBg: 'bg-sky-50 dark:bg-sky-950/30' },
+            { label: 'Active', value: data.summary.active, colorClass: 'text-emerald-700',
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />, iconBg: 'bg-emerald-50' },
+            { label: 'Inactive', value: data.summary.inactive, colorClass: 'text-slate-500 dark:text-neutral-400',
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-neutral-500" />, iconBg: 'bg-slate-100 dark:bg-neutral-800' },
           ]}
         />
       )}
 
       <div className="flex items-center gap-3">
-        <input
-          type="search"
-          placeholder="Search tenants..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-        />
+        <div className="relative">
+          <MagnifyingGlass size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-neutral-500" />
+          <input
+            type="search"
+            placeholder="Search tenants..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-field pl-10 w-72"
+          />
+        </div>
       </div>
 
       <DataTable
@@ -154,43 +160,59 @@ export function TenantListPage() {
         onRowClick={(t) => navigate(`/tenants/${t.id}`)}
         emptyState={
           <EmptyState
-            icon={<Buildings size={48} />}
+            icon={<Buildings size={40} />}
             heading="No tenants found"
             subtext="Create your first tenant to get started."
           />
         }
       />
 
-      {!loading && total > 0 && (
+      {!loading && totalPages > 1 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-500 dark:text-neutral-400">
             Showing{' '}
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-slate-700 dark:text-neutral-300">
               {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}
             </span>{' '}
-            of <span className="font-medium text-gray-900">{total}</span>
+            of <span className="font-medium text-slate-700 dark:text-neutral-300">{total}</span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
             >
-              <CaretLeft size={16} />
-              Previous
+              <CaretLeft size={14} /> Previous
             </button>
-            <span className="text-sm text-gray-600 px-2 tabular-nums">
-              Page {page} of {totalPages}
-            </span>
+            <div className="flex items-center gap-1 px-2">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                const pg = i + 1;
+                return (
+                  <button
+                    key={pg}
+                    onClick={() => setPage(pg)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200
+                      ${page === pg
+                        ? 'bg-primary-600 text-white shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                      }`}
+                  >
+                    {pg}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && (
+                <span className="text-sm text-slate-400 dark:text-neutral-500 px-1">... {totalPages}</span>
+              )}
+            </div>
             <button
               type="button"
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="btn-secondary py-1.5 px-3 text-sm disabled:opacity-40 disabled:pointer-events-none"
             >
-              Next
-              <CaretRight size={16} />
+              Next <CaretRight size={14} />
             </button>
           </div>
         </div>

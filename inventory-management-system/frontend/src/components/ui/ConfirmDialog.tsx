@@ -13,12 +13,14 @@ interface ConfirmDialogProps {
 
 const variantStyles = {
   danger: {
-    icon: 'text-red-500',
-    button: 'bg-red-600 hover:bg-red-700 text-white',
+    iconBg: 'bg-rose-100',
+    icon: 'text-rose-500',
+    button: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm hover:shadow-md',
   },
   warning: {
+    iconBg: 'bg-amber-100',
     icon: 'text-amber-500',
-    button: 'bg-amber-600 hover:bg-amber-700 text-white',
+    button: 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:shadow-md',
   },
 };
 
@@ -37,25 +39,25 @@ export function ConfirmDialog({
   const styles = variantStyles[variant];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-        <div className="flex items-start gap-3 mb-4">
-          <WarningCircle size={24} className={styles.icon} weight="fill" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 animate-scale-in">
+        <div className="flex items-start gap-4 mb-5">
+          <div className={`w-10 h-10 rounded-xl ${styles.iconBg} flex items-center justify-center shrink-0`}>
+            <WarningCircle size={22} className={styles.icon} weight="fill" />
+          </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{message}</p>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-neutral-100">{title}</h3>
+            <p className="text-sm text-slate-500 dark:text-neutral-400 mt-1 leading-relaxed">{message}</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
+        <div className="flex justify-end gap-2.5">
+          <button onClick={onCancel} className="btn-secondary">
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors ${styles.button}`}
+            className={`inline-flex items-center px-4 py-2.5 text-sm font-semibold rounded-lg
+              transition-all duration-200 ${styles.button}`}
           >
             {confirmLabel}
           </button>
