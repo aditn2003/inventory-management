@@ -4,6 +4,58 @@
 
 ---
 
+## Table of Contents
+
+- [0. Decisions & Assumptions](#0-decisions--assumptions)
+- [1. Global UI Shell](#1-global-ui-shell)
+- [2. Functional Requirements — Page-by-Page Specification](#2-functional-requirements--page-by-page-specification)
+  - [2.1 Tenant List](#21-tenant-list-tenants)
+  - [2.2 Tenant Detail](#22-tenant-detail-tenantsid--new-in-v5)
+  - [2.3 Tenant Create/Edit](#23-tenant-createedit-tenantsnew-tenantsidedit)
+  - [2.4 Product List](#24-product-list-products)
+  - [2.5 Product Detail](#25-product-detail-productsid)
+  - [2.6 Product Create/Edit](#26-product-createedit-productsnew-productsidedit)
+  - [2.7 Inventory List](#27-inventory-list-inventory)
+  - [2.8 Inventory Detail](#28-inventory-detail-inventoryid)
+  - [2.9 Inventory Edit](#29-inventory-edit-inventoryidedit)
+  - [2.10 Order List](#210-order-list-orders)
+  - [2.11 Order Detail](#211-order-detail-ordersid)
+  - [2.12 Order Create/Edit](#212-order-createedit-ordersnew-ordersidedit)
+- [3. Cross-Entity Navigation Map](#3-cross-entity-navigation-map)
+- [4. Display ID Generation](#4-display-id-generation)
+- [5. Data Model](#5-data-model)
+- [6. Order Status Flow & Inventory Deduction](#6-order-status-flow--inventory-deduction)
+- [7. Business Rules (exhaustive)](#7-business-rules-exhaustive)
+- [8. API Design](#8-api-design)
+  - [Conventions](#conventions)
+  - [Layered Architecture](#layered-architecture-routes--controllers--services--repositories)
+  - [Endpoints](#endpoints)
+  - [Summary Tile Payloads](#summary-tile-payloads)
+- [9. Tech Stack](#9-tech-stack)
+- [10. Authentication & Authorization](#10-authentication--authorization)
+- [11. Security Architecture](#11-security-architecture)
+- [12. Frontend Architecture](#12-frontend-architecture)
+- [13. Docker Compose](#13-docker-compose)
+- [14. Project Structure](#14-project-structure)
+- [15. Migration & Seed Strategy](#15-migration--seed-strategy)
+- [16. Implementation Phases (13 phases)](#16-implementation-phases-13-phases)
+  - [Phase 1 — Infrastructure Foundation](#phase-1--infrastructure-foundation)
+  - [Phase 2 — Database Schema & Seed](#phase-2--database-schema--seed)
+  - [Phase 3 — API Foundation & Middleware](#phase-3--api-foundation--middleware)
+  - [Phase 4 — Auth System](#phase-4--auth-system)
+  - [Phase 5 — Tenant CRUD API + User Management API](#phase-5--tenant-crud-api--user-management-api)
+  - [Phase 6 — Product & Inventory CRUD API](#phase-6--product--inventory-crud-api)
+  - [Phase 7 — Order CRUD & Status Flow API](#phase-7--order-crud--status-flow-api)
+  - [Phase 8 — Backend Tests](#phase-8--backend-tests)
+  - [Phase 9 — Frontend Foundation](#phase-9--frontend-foundation)
+  - [Phase 10 — Shared Component Library](#phase-10--shared-component-library)
+  - [Phase 11 — Tenant, Product & User Management Pages](#phase-11--tenant-product--user-management-pages)
+  - [Phase 12 — Inventory & Order Pages](#phase-12--inventory--order-pages)
+  - [Phase 13 — Polish, Empty States & Security Verification](#phase-13--polish-empty-states--security-verification)
+- [17. Wireframe Reference Files — Corrections Applied](#17-wireframe-reference-files--corrections-applied)
+
+---
+
 ## 0. Decisions & Assumptions
 
 This section documents every deliberate deviation from the stated preferences and every ambiguity resolved. Raise these at the interview.
