@@ -1,16 +1,16 @@
-﻿import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
-import { usersApi } from '@/api/users';
-import { DetailHeader } from '@/components/ui/DetailHeader';
-import { FormCard } from '@/components/ui/FormCard';
-import { getErrorMessage } from '@/types/api';
+﻿import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { usersApi } from "@/api/users";
+import { DetailHeader } from "@/components/ui/DetailHeader";
+import { FormCard } from "@/components/ui/FormCard";
+import { getErrorMessage } from "@/types/api";
 
 const schema = z.object({
-  email: z.string().min(1, 'Email is required').email('Enter a valid email'),
+  email: z.string().min(1, "Email is required").email("Enter a valid email"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -30,7 +30,7 @@ export function UserInvitePage() {
     try {
       const res = await usersApi.sendInvitation({ email: values.email.trim() });
       toast.success(res.message);
-      navigate('/users');
+      navigate("/users");
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -54,17 +54,17 @@ export function UserInvitePage() {
               Email address <span className="text-rose-500">*</span>
             </label>
             <input
-              {...register('email')}
+              {...register("email")}
               type="email"
               autoComplete="off"
               className="input-field"
               placeholder="colleague@company.com"
             />
-            {errors.email && <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>}
-            <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1.5">
-              The server must have <code className="text-xs bg-slate-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">RESEND_API_KEY</code> set;
-              otherwise invitations cannot be sent.
-            </p>
+            {errors.email && (
+              <p className="text-xs text-rose-600 mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-neutral-700">
@@ -74,9 +74,15 @@ export function UserInvitePage() {
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Sending...
                 </span>
-              ) : 'Send invitation'}
+              ) : (
+                "Send invitation"
+              )}
             </button>
-            <button type="button" onClick={() => navigate('/users')} className="btn-secondary">
+            <button
+              type="button"
+              onClick={() => navigate("/users")}
+              className="btn-secondary"
+            >
               Cancel
             </button>
           </div>

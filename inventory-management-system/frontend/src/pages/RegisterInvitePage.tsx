@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -116,29 +116,25 @@ export function RegisterInvitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+    <div className="dark">
+    <div className="min-h-screen bg-surface-dark flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
             <Cube size={22} weight="fill" className="text-white" />
           </div>
-          <span className="text-2xl font-bold text-slate-900 dark:text-neutral-100">IMS</span>
+          <span className="text-2xl font-bold text-neutral-100">IMS</span>
         </div>
 
         <div className="card p-8 shadow-elevated">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-neutral-100 mb-1">Complete your account</h1>
-          <p className="text-sm text-slate-500 dark:text-neutral-400 mb-7">Choose your display name and password</p>
+          <h1 className="text-xl font-bold text-neutral-100 mb-1">Complete your account</h1>
+          <p className="text-sm text-neutral-400 mb-7">Choose your display name and password</p>
 
           {previewLoading && <div className="shimmer-line h-24 mb-4" />}
 
           {!previewLoading && previewError && (
-            <div className="rounded-xl bg-rose-50 text-rose-700 text-sm p-4 mb-4 ring-1 ring-rose-600/20">
+            <div className="rounded-xl bg-rose-950/50 text-rose-300 text-sm p-4 mb-4 ring-1 ring-rose-600/30">
               {previewError}
-              <div className="mt-3">
-                <Link to="/login" className="text-primary-600 font-medium hover:underline">
-                  Back to sign in
-                </Link>
-              </div>
             </div>
           )}
 
@@ -282,6 +278,7 @@ export function RegisterInvitePage() {
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }
