@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str
-    database_url_sync: str
+    database_url_sync: str = ""
 
     # Redis
     redis_url: str
@@ -29,13 +29,13 @@ class Settings(BaseSettings):
 
     # Application
     seed_on_startup: bool = False
-    cors_origins: str
+    cors_origins: str = ""
     environment: Literal["development", "production", "test"] = "development"
     public_app_url: str = "http://localhost"
     # Resend (https://resend.com) — invitation emails
-    resend_api_key: str 
-    resend_from_email: str
-    invite_expire_hours: int
+    resend_api_key: str = ""
+    resend_from_email: str = ""
+    invite_expire_hours: int = 168
 
     # Google OAuth 2.0 (Sign in with Google) — leave client id/secret empty to disable
     google_oauth_client_id: str = ""
