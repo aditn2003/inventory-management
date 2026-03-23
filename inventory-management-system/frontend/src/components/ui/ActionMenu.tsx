@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DotsThreeVertical } from '@phosphor-icons/react';
 
@@ -12,11 +12,54 @@ interface ActionMenuProps {
   items: ActionItem[];
 }
 
+const MENU_WIDTH = 176; // Tailwind w-44
+const GAP = 6;
+const VIEWPORT_PADDING = 8;
+
 const variantClasses: Record<string, string> = {
   default: 'text-slate-700 hover:bg-slate-50 dark:text-neutral-300 dark:hover:bg-neutral-700',
   danger: 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10',
   warning: 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10',
 };
+
+function estimateMenuHeight(itemCount: number) {
+  return 8 + itemCount * 40;
+}
+
+function computeMenuPosition(
+  rect: DOMRect,
+  menuHeight: number,
+  viewportW: number,
+  viewportH: number
+) {
+  const spaceBelow = viewportH - VIEWPORT_PADDING - (rect.bottom + GAP);
+  const spaceAbove = rect.top - GAP - VIEWPORT_PADDING;
+
+  let top: number;
+
+  if (menuHeight <= spaceBelow) {
+    top = rect.bottom + GAP;
+  } else if (menuHeight <= spaceAbove) {
+    top = rect.top - menuHeight - GAP;
+  } else {
+    if (spaceBelow >= spaceAbove) {
+      top = rect.bottom + GAP;
+    } else {
+      top = rect.top - menuHeight - GAP;
+    }
+    top = Math.max(
+      VIEWPORT_PADDING,
+      Math.min(top, viewportH - menuHeight - VIEWPORT_PADDING)
+    );
+  }
+
+  const left = Math.max(
+    VIEWPORT_PADDING,
+    Math.min(rect.right - MENU_WIDTH, viewportW - MENU_WIDTH - VIEWPORT_PADDING)
+  );
+
+  return { top, left };
+}
 
 export function ActionMenu({ items }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
@@ -27,15 +70,20 @@ export function ActionMenu({ items }: ActionMenuProps) {
   const updatePosition = useCallback(() => {
     if (!btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
-    setPos({
-      top: rect.bottom + 6,
-      left: rect.right - 176,
-    });
-  }, []);
+    const measured = menuRef.current?.getBoundingClientRect().height ?? 0;
+    const menuHeight = measured > 0 ? measured : estimateMenuHeight(items.length);
+    setPos(computeMenuPosition(rect, menuHeight, window.innerWidth, window.innerHeight));
+  }, [items.length]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const id = requestAnimationFrame(() => updatePosition());
+    return () => cancelAnimationFrame(id);
+  }, [open, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
-    updatePosition();
 
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -55,6 +103,15 @@ export function ActionMenu({ items }: ActionMenuProps) {
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', handleScroll, true);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleResize() {
+      updatePosition();
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [open, updatePosition]);
 
   const dangerIdx = items.findIndex((i) => i.variant === 'danger');
@@ -79,8 +136,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
           <div
             ref={menuRef}
             className="fixed w-44 bg-white dark:bg-neutral-800 border border-slate-200/80 dark:border-neutral-700/80 rounded-xl
-              shadow-elevated z-50 animate-scale-in overflow-hidden"
-            style={{ top: pos.top, left: Math.max(pos.left, 8) }}
+              shadow-elevated z-[1000] animate-scale-in overflow-hidden"
+            style={{ top: pos.top, left: pos.left }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-1">

@@ -80,7 +80,7 @@ export function RegisterInvitePage() {
     const err = searchParams.get('invite_oauth_error');
     if (!err) return;
     const inviteErrMessages: Record<string, string> = {
-      invalid_invite: 'Google sign-in could not start â€” this invitation is invalid or expired.',
+      invalid_invite: 'Google sign-in could not start — this invitation is invalid or expired.',
     };
     toast.error(inviteErrMessages[err] ?? 'Could not start Google sign-in.');
     const t = searchParams.get('token') ?? token;

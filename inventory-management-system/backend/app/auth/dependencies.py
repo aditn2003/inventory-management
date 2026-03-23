@@ -13,7 +13,7 @@ from app.auth.models import User
 from app.auth.repository import UserRepository
 from app.auth.service import AuthService
 from app.config import get_settings
-from app.database import get_db
+from app.database import get_db, set_rls_context
 
 settings = get_settings()
 bearer_scheme = HTTPBearer()
@@ -105,16 +105,15 @@ async def get_tenant_id(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tenant ID format."
         )
 
-    if current_user.role == "admin":
-        return tenant_uuid
+    if current_user.role != "admin":
+        repo = UserRepository(session)
+        assigned = await repo.get_assigned_tenant_ids(current_user.id)
 
-    repo = UserRepository(session)
-    assigned = await repo.get_assigned_tenant_ids(current_user.id)
+        if assigned and tenant_uuid not in assigned:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access to this tenant is restricted.",
+            )
 
-    if assigned and tenant_uuid not in assigned:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access to this tenant is restricted.",
-        )
-
+    await set_rls_context(session, tenant_uuid)
     return tenant_uuid

@@ -80,6 +80,11 @@ async def update_user_role(
     session: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ) -> UserDetail:
+    if user_id == _admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot change your own role.",
+        )
     svc = UserManagementService(session)
     try:
         return await svc.update_role(user_id, body.role)

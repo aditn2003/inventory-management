@@ -56,7 +56,7 @@ export function InventoryDetailPage() {
             'Inventory Item'
           )
         }
-        subtitle={`SKU: ${item.product?.sku ?? 'â€”'}`}
+        subtitle={`SKU: ${item.product?.sku ?? '—'}`}
         backTo="/inventory"
         backLabel="Inventory"
         actions={
@@ -68,8 +68,8 @@ export function InventoryDetailPage() {
 
       <InfoCardGrid
         cards={[
-          { label: 'Category', value: item.product?.category ?? 'â€”' },
-          { label: 'Cost per unit', value: item.product ? `$${Number(item.product.cost_per_unit).toFixed(2)}` : 'â€”' },
+          { label: 'Category', value: item.product?.category ?? '—' },
+          { label: 'Cost per unit', value: item.product ? `$${Number(item.product.cost_per_unit).toFixed(2)}` : '—' },
           {
             label: 'Current inventory',
             valuePlain: true,
@@ -92,7 +92,7 @@ export function InventoryDetailPage() {
               />
             ),
           },
-          { label: 'Reorder threshold', value: item.product?.reorder_threshold ?? 'â€”' },
+          { label: 'Reorder threshold', value: item.product?.reorder_threshold ?? '—' },
         ]}
       />
 

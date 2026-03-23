@@ -285,7 +285,11 @@ See **`.env.example`** for the full list. Important keys:
 
 ## Security (summary)
 
-**Nginx:** rate limits (stricter on `/api/v1/auth/*` and OAuth), security headers, client IP forwarding — see **`nginx/nginx.conf`**. **Backend:** bcrypt passwords; JWT access + refresh with rotation; **Redis** blacklist on logout; generic login errors; **hashed invite tokens**; **PostgreSQL RLS** — see **`app/auth/`**.
+**Nginx:** rate limits (stricter on `/api/v1/auth/*` and OAuth), security headers, client IP forwarding — see **`nginx/nginx.conf`**. **Backend:** bcrypt passwords; JWT access + refresh with rotation; **Redis** blacklist on logout; generic login errors; **hashed invite tokens**; **PostgreSQL RLS** — see **`app/auth/`** and **`app/database.py`**.
+
+### Row-Level Security (RLS)
+
+Tenant-scoped tables (`products`, `inventory`, `orders`) have PostgreSQL RLS policies that filter rows by `tenant_id`. On every tenant-scoped request, the `get_tenant_id` dependency calls `SET LOCAL ROLE ims_app` (a non-owner role subject to RLS) and `set_config('app.current_tenant_id', '<uuid>', true)` within the current transaction. This provides **database-level tenant isolation** as defense-in-depth alongside the application-layer `WHERE tenant_id = :tid` filters. Seed and migrations run as the table-owner (`ims_user`) and bypass RLS automatically (`NO FORCE`).
 
 ---
 

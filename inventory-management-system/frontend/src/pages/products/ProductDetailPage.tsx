@@ -42,7 +42,7 @@ export function ProductDetailPage() {
 
   const stockValue = product.inventory
     ? `${product.inventory.current_stock} ${product.inventory.unit}`
-    : 'â€”';
+    : '—';
 
   const stockColorClass =
     product.inventory && product.inventory.current_stock < product.reorder_threshold

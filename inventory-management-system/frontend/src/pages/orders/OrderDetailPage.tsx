@@ -149,7 +149,7 @@ export function OrderDetailPage() {
             value: (
               <div>
                 <p className="text-lg font-semibold text-slate-900 dark:text-neutral-100 tabular-nums">
-                  {inv ? `${inv.current_stock} ${inv.unit}` : 'â€”'}
+                  {inv ? `${inv.current_stock} ${inv.unit}` : '—'}
                 </p>
                 {order.status === 'confirmed' && inv && (
                   <p className="text-xs text-slate-400 dark:text-neutral-500 mt-1 leading-snug">
@@ -161,7 +161,7 @@ export function OrderDetailPage() {
           },
           {
             label: 'Reorder threshold',
-            value: p?.reorder_threshold ?? 'â€”',
+            value: p?.reorder_threshold ?? '—',
             valueClassName: 'tabular-nums text-slate-900 dark:text-neutral-100',
           },
           { label: 'Status', value: <StatusBadge status={order.status} /> },

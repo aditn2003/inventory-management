@@ -346,7 +346,7 @@ def test_invite_still_valid_naive_expiry():
     from app.auth.invite_repository import UserInviteRepository
     inv = MagicMock()
     inv.consumed_at = None
-    inv.expires_at = datetime.now() + timedelta(hours=1)
+    inv.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     inv.expires_at = inv.expires_at.replace(tzinfo=None)
     assert UserInviteRepository.invite_still_valid(inv) is True
 

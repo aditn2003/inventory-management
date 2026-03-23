@@ -118,7 +118,7 @@ export function OrderEditPage() {
               <select {...register('product_id')} className="input-field">
                 <option value="">Select product...</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.sku} â€” {p.name}</option>
+                  <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>
                 ))}
               </select>
               {errors.product_id && <p className="text-xs text-rose-600 mt-1">{errors.product_id.message}</p>}
@@ -133,7 +133,7 @@ export function OrderEditPage() {
                 <>
                   Requested quantity
                   {qtyReadOnly && (
-                    <span className="ml-1 text-xs font-normal text-slate-400 dark:text-neutral-500">(read-only â€” order is confirmed)</span>
+                    <span className="ml-1 text-xs font-normal text-slate-400 dark:text-neutral-500">(read-only — order is confirmed)</span>
                   )}
                 </>
               )}
